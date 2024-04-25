@@ -82,10 +82,14 @@ namespace 文件去重
                     string[] FilePathAll = FilePath.Split(Separator, StringSplitOptions.RemoveEmptyEntries);
                     if (FilePathAll.Length > 0)
                     {
-                        int fornum = FilePathAll.Length;
+                        int index = 0;
+                        int OK = 0;
+                        int error = 0;
                         FileGet.lst.Clear();
                         foreach (string str in FilePathAll)
                         {
+                            progressBar1.Maximum = FilePathAll.Length;
+                            label1.Text = $"扫描到文件：{FileGet.lst.Count} {progressBar1.Value}/{progressBar1.Maximum} 正确路径：{OK} 过滤路径：{error}";
                             if (FilePathAllList.FindIndex(o => o.Equals(str) || (o.Length > str.Length && o.Contains(str) && o.Remove(0, str.Length).Contains(@"\")) || (str.Length > o.Length && str.Contains(o) && str.Remove(0, o.Length).Contains(@"\"))) == -1)
                             {
                                 // 确保路径是完全限定的
@@ -96,13 +100,20 @@ namespace 文件去重
                                         FileGet.getdirOnlyHere(str, Format);
                                     else
                                         FileGet.getdir(str, Format);
-                                    label1.Text = $"扫描到文件：{FileGet.lst.Count}个，剩余扫描次数：{--fornum}次";
+                                    OK++;
                                 }
                                 else
                                 {
+                                    error++;
                                     log("不是绝对路径：" + str, time);
                                 }
                             }
+                            else
+                            {
+                                error++;
+                                log("是子路径：" + str, time);
+                            }
+                            progressBar1.Value = ++index;
                         }
 
                         FilePath = "";
@@ -194,11 +205,11 @@ namespace 文件去重
                                 }
                                 else//数据库存在数据，从数据库中提取数据
                                 {
-                                    log($"数据库存在数据：{path}", time);
                                     start = DateTime.Now;
                                     if (data.Tables[0].Rows[0].Field<string>("size") == file.Length.ToString() &&
                                         (data.Tables[0].Rows[0].Field<string>("LastWriteTime")) == file.LastWriteTime.ToString())//判断更新时间和大小是否匹配
                                     {
+                                        log($"数据库存在数据：{path}", time);
                                         md5 = data.Tables[0].Rows[0].Field<string>("md5");
                                         Hash = data.Tables[0].Rows[0].Field<string>("Hash");
                                         sha256 = data.Tables[0].Rows[0].Field<string>("SHA256");
@@ -992,10 +1003,14 @@ namespace 文件去重
         {
             try
             {
-                button_SQLempty.Enabled = false;
-                SQLiteHelper.ExecuteSql("delete from file");//清空数据库
-                SQLiteHelper.ExecuteSql("vacuum");//数据库收缩指令
-                button_SQLempty.Enabled = true;
+                DialogResult dialogResult = MessageBox.Show("是否清空数据库？", "警告", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (dialogResult == DialogResult.Yes)
+                {
+                    button_SQLempty.Enabled = false;
+                    SQLiteHelper.ExecuteSql("delete from file");//清空数据库
+                    SQLiteHelper.ExecuteSql("vacuum");//数据库收缩指令
+                    button_SQLempty.Enabled = true;
+                }
             }
             catch (Exception ex)
             {
@@ -1006,63 +1021,67 @@ namespace 文件去重
 
         private void button_SQLAuditFile_Click(object sender, EventArgs e)
         {
-            Task.Factory.StartNew(() =>
+            DialogResult dialogResult = MessageBox.Show("是否去除无效文件？", "警告", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (dialogResult == DialogResult.Yes)
             {
-                try
+                Task.Factory.StartNew(() =>
                 {
-                    button_SQLAuditFile.Enabled = false;
-                    var data = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file");
-                    int index = 0;
-                    int nobe = 0;
-                    int timediff = 0;
-                    int OK = 0;
-
-                    ArrayList SQLStringList = new ArrayList();
-                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
-
-                    for (int i = 0; i < data.Tables[0].Rows.Count; i++)
+                    try
                     {
-                        progressBar1.Maximum = data.Tables[0].Rows.Count;
-                        string path = data.Tables[0].Rows[i].Field<string>("path");
-                        string LastWriteTime = data.Tables[0].Rows[i].Field<string>("LastWriteTime");
-                        //log(path);
-                        //log(LastWriteTime);
-                        if (File.Exists(path))
+                        button_SQLAuditFile.Enabled = false;
+                        var data = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file");
+                        int index = 0;
+                        int nobe = 0;
+                        int timediff = 0;
+                        int OK = 0;
+
+                        ArrayList SQLStringList = new ArrayList();
+                        SQLiteHelper.ExecuteSqlTran(SQLStringList);
+
+                        for (int i = 0; i < data.Tables[0].Rows.Count; i++)
                         {
-                            FileInfo file = new FileInfo(path);
-                            if (!(file.LastWriteTime.ToString() == LastWriteTime))
+                            progressBar1.Maximum = data.Tables[0].Rows.Count;
+                            string path = data.Tables[0].Rows[i].Field<string>("path");
+                            string LastWriteTime = data.Tables[0].Rows[i].Field<string>("LastWriteTime");
+                            //log(path);
+                            //log(LastWriteTime);
+                            if (File.Exists(path))
                             {
-                                //时间不匹配
-                                SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
-                                timediff++;
+                                FileInfo file = new FileInfo(path);
+                                if (!(file.LastWriteTime.ToString() == LastWriteTime))
+                                {
+                                    //时间不匹配
+                                    SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
+                                    timediff++;
+                                }
+                                else
+                                {
+                                    OK++;
+                                }
                             }
                             else
                             {
-                                OK++;
+                                //文件不存在
+                                SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
+                                nobe++;
                             }
+                            progressBar1.Value = ++index;
+                            string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
+                            if (progressBar1.Value == progressBar1.Maximum)
+                                percentage = "100";
+                            label1.Text = $"{progressBar1.Value}/{progressBar1.Maximum} {percentage}% 文件正常：{OK} 时间不匹配：{timediff} 文件不存在：{nobe}";
                         }
-                        else
-                        {
-                            //文件不存在
-                            SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
-                            nobe++;
-                        }
-                        progressBar1.Value = ++index;
-                        string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
-                        if (progressBar1.Value == progressBar1.Maximum)
-                            percentage = "100";
-                        label1.Text = $"{progressBar1.Value}/{progressBar1.Maximum} {percentage}% 文件正常：{OK} 时间不匹配：{timediff} 文件不存在：{nobe}";
+                        SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                        button_SQLAuditFile.Enabled = true;
                     }
-                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
-                    button_SQLAuditFile.Enabled = true;
+                    catch (Exception ex)
+                    {
+                        log(ex.ToString());
+                        MessageBox.Show(ex.Message);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    log(ex.ToString());
-                    MessageBox.Show(ex.Message);
-                }
-            }
             );
+            }
         }
     }
 }
