@@ -44,6 +44,8 @@ namespace 文件去重
             try
             {
                 button1.Enabled = false;
+                bool DirOnlyHere_time = DirOnlyHere;
+                DirOnlyHere = false;
                 log("加载中", time);
 
                 button1.Text = "进行中";
@@ -75,7 +77,7 @@ namespace 文件去重
                                 if (Path.IsPathRooted(str))
                                 {
                                     FilePathAllList.Add(str);
-                                    if (DirOnlyHere)
+                                    if (DirOnlyHere_time)
                                         FileGet.getdirOnlyHere(str, Format);
                                     else
                                         FileGet.getdir(str, Format);
@@ -97,9 +99,16 @@ namespace 文件去重
                 }
                 else
                 {
-                    FileGet.getFile(FilePath, Format);
+                    // 确保路径是完全限定的
+                    if (Path.IsPathRooted(FilePath))
+                    {
+                        FileGet.getFile(FilePath, Format);
+                    }
+                    else
+                    {
+                        log("不是绝对路径：" + FilePath, time);
+                    }
                 }
-                DirOnlyHere = false;
 
                 log("开始：" + textBox1.Text + " 格式：" + Format + " md5：" + md5Open + " Hash：" + HashOpen + " sha256：" + sha256Open, time);
 
