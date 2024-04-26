@@ -250,38 +250,39 @@ namespace 文件去重
                             //log(path + " SHA256：" + SHA256);
 
                             bool BeRepeat = false;
-                            foreach (var RepeatPossible in index)
+                            for (int i = 0;i< index.Count;i++)
                             {
-                                log($"数据库添加数据：{RepeatPossible.path}", time);
-                                if (RepeatPossible.md5 == null && md5Open)
-                                {
-                                    sqlBeData = false;
-                                    RepeatPossible.md5 = GetMD5HashFromFile(RepeatPossible.path);
-                                }
-                                if (RepeatPossible.Hash == null && HashOpen)
-                                {
-                                    sqlBeData = false;
-                                    RepeatPossible.Hash = GetHash(RepeatPossible.path);
-                                }
-                                if (RepeatPossible.SHA256 == null && sha256Open)
-                                {
-                                    sqlBeData = false;
-                                    RepeatPossible.SHA256 = general_sha256_code(RepeatPossible.path, Sha26ParseType.StreamType);
-                                }
-                                if(!sqlBeData)
-                                {
-                                    //更新数据到数据库
-                                    //SQLiteHelper.ExecuteSql($"update file SET size = '{RepeatPossible.size}'  md5 = '{RepeatPossible.md5}' , Hash = '{RepeatPossible.Hash}' , SHA256 = '{RepeatPossible.SHA256}',LastWriteTime ='{RepeatPossible.LastWriteTime}' WHERE path = '{RepeatPossible.path}'");
-                                    ArrayList SQLStringList = new ArrayList();
-                                    SQLStringList.Add($"delete from file where path = '{RepeatPossible.path}'");//删除数据
-                                    SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{RepeatPossible.path}','{RepeatPossible.size}','{RepeatPossible.md5}','{RepeatPossible.Hash}','{RepeatPossible.SHA256}','{RepeatPossible.LastWriteTime}')");//添加数据到数据库
-                                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
-                                }
-                                if (md5 == RepeatPossible.md5 && Hash == RepeatPossible.Hash)
+                                index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
+                                //log($"数据库添加数据：{index[i].path}", time);
+                                //if (index[i].md5 == null && md5Open)
+                                //{
+                                //    sqlBeData = false;
+                                //    index[i].md5 = GetMD5HashFromFile(index[i].path);
+                                //}
+                                //if (index[i].Hash == null && HashOpen)
+                                //{
+                                //    sqlBeData = false;
+                                //    index[i].Hash = GetHash(index[i].path);
+                                //}
+                                //if (index[i].SHA256 == null && sha256Open)
+                                //{
+                                //    sqlBeData = false;
+                                //    index[i].SHA256 = general_sha256_code(index[i].path, Sha26ParseType.StreamType);
+                                //}
+                                //if(!sqlBeData)
+                                //{
+                                //    //更新数据到数据库
+                                //    //SQLiteHelper.ExecuteSql($"update file SET size = '{index[i].size}'  md5 = '{index[i].md5}' , Hash = '{index[i].Hash}' , SHA256 = '{index[i].SHA256}',LastWriteTime ='{index[i].LastWriteTime}' WHERE path = '{index[i].path}'");
+                                //    ArrayList SQLStringList = new ArrayList();
+                                //    SQLStringList.Add($"delete from file where path = '{index[i].path}'");//删除数据
+                                //    SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{index[i].path}','{index[i].size}','{index[i].md5}','{index[i].Hash}','{index[i].SHA256}','{index[i].LastWriteTime}')");//添加数据到数据库
+                                //    SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                                //}
+                                if (md5 == index[i].md5 && Hash == index[i].Hash)
                                 {
                                     //确定为同一文件
                                     string oldpath = file.FullName;
-                                    log(oldpath + " 与该文件相同： " + RepeatPossible.path, time);
+                                    log(oldpath + " 与该文件相同： " + index[i].path, time);
                                     if (checkBox_Delete.Checked)
                                     {
                                         file.Delete();
