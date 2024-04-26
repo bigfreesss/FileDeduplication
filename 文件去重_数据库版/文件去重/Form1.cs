@@ -1182,10 +1182,10 @@ namespace 文件去重
                     for (int i = 0; i < data.Tables[0].Rows.Count; i++)
                     {
                         progressBar1.Maximum = data.Tables[0].Rows.Count;
-                        string oldpath = data.Tables[0].Rows[0].Field<string>("oldpath");
-                        string NewPath = data.Tables[0].Rows[0].Field<string>("NewPath");
-                        string repeatPath = data.Tables[0].Rows[0].Field<string>("repeatPath");
-                        string time = data.Tables[0].Rows[0].Field<string>("time");
+                        string oldpath = data.Tables[0].Rows[i].Field<string>("oldpath");
+                        string NewPath = data.Tables[0].Rows[i].Field<string>("NewPath");
+                        string repeatPath = data.Tables[0].Rows[i].Field<string>("repeatPath");
+                        string time = data.Tables[0].Rows[i].Field<string>("time");
                         if (!File.Exists(NewPath))
                         {
                             //新文件不存在
@@ -1212,6 +1212,7 @@ namespace 文件去重
                         label1.Text = $"{index}/{progressBar1.Maximum} {percentage}% 成功还原：{SuccessNum} 不存在文件：{NoFileExists} 旧文件存在：{errNum}";
                     }
                     SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                    DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
                     button_recoverySQL.Enabled = true;
                 }
             }
