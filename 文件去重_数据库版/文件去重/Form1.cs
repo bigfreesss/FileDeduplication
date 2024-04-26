@@ -333,7 +333,7 @@ namespace 文件去重
                                 features.Add(features1);
                             }
                         }
-                        progressBar1.Value = index_progressBar1_Value++;
+                        progressBar1.Value = ++index_progressBar1_Value;
                         string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
                         if (progressBar1.Value == progressBar1.Maximum)
                             percentage = "100";
@@ -1163,6 +1163,63 @@ namespace 文件去重
                 //log($"从数据库读取用时：{(DateTime.Now - start).TotalSeconds}s", time);
             }
             return features;
+        }
+
+        private void button_recoverySQL_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                button_recoverySQL.Enabled = false;
+                var data = SQLiteHelper.Query("select oldpath,NewPath,repeatPath,time from HistoricalPath");
+                if (data != null)
+                {
+                    int index = 0;
+                    int SuccessNum = 0;
+                    int errNum = 0;
+                    int NoFileExists = 0;
+                    ArrayList SQLStringList = new ArrayList();
+
+                    for (int i = 0; i < data.Tables[0].Rows.Count; i++)
+                    {
+                        progressBar1.Maximum = data.Tables[0].Rows.Count;
+                        string oldpath = data.Tables[0].Rows[0].Field<string>("oldpath");
+                        string NewPath = data.Tables[0].Rows[0].Field<string>("NewPath");
+                        string repeatPath = data.Tables[0].Rows[0].Field<string>("repeatPath");
+                        string time = data.Tables[0].Rows[0].Field<string>("time");
+                        if (!File.Exists(NewPath))
+                        {
+                            //新文件不存在
+                            NoFileExists++;
+                            SQLStringList.Add($"delete from HistoricalPath where NewPath = '{NewPath}'");//删除数据
+                        }
+                        else
+                        {
+                            if (File.Exists(oldpath))
+                            {
+                                //老文件存在
+                                errNum++;
+                                SQLStringList.Add($"delete from HistoricalPath where oldpath = '{oldpath}'");//删除数据
+                            }
+                            else
+                            {
+                                FileInfo file = new FileInfo(NewPath);
+                                file.MoveTo(oldpath);
+                                SuccessNum++;
+                            }
+                        }
+                        progressBar1.Value = ++index;
+                        string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
+                        label1.Text = $"{index}/{progressBar1.Maximum} {percentage}% 成功还原：{SuccessNum} 不存在文件：{NoFileExists} 旧文件存在：{errNum}";
+                    }
+                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                    button_recoverySQL.Enabled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                log(ex.ToString());
+                MessageBox.Show(ex.Message);
+            }
         }
     }
 }

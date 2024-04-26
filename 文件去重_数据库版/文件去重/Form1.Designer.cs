@@ -46,6 +46,7 @@
             this.button_SQLempty = new System.Windows.Forms.Button();
             this.checkBox_sql = new System.Windows.Forms.CheckBox();
             this.button_SQLAuditFile = new System.Windows.Forms.Button();
+            this.button_recoverySQL = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // button1
@@ -171,7 +172,7 @@
             // checkBox_Delete
             // 
             this.checkBox_Delete.AutoSize = true;
-            this.checkBox_Delete.Location = new System.Drawing.Point(216, 110);
+            this.checkBox_Delete.Location = new System.Drawing.Point(366, 110);
             this.checkBox_Delete.Name = "checkBox_Delete";
             this.checkBox_Delete.Size = new System.Drawing.Size(72, 16);
             this.checkBox_Delete.TabIndex = 11;
@@ -192,7 +193,7 @@
             // checkBox_DeleteNullFile
             // 
             this.checkBox_DeleteNullFile.AutoSize = true;
-            this.checkBox_DeleteNullFile.Location = new System.Drawing.Point(294, 110);
+            this.checkBox_DeleteNullFile.Location = new System.Drawing.Point(444, 110);
             this.checkBox_DeleteNullFile.Name = "checkBox_DeleteNullFile";
             this.checkBox_DeleteNullFile.Size = new System.Drawing.Size(96, 16);
             this.checkBox_DeleteNullFile.TabIndex = 13;
@@ -202,7 +203,7 @@
             // button_SQLempty
             // 
             this.button_SQLempty.AutoSize = true;
-            this.button_SQLempty.Location = new System.Drawing.Point(501, 106);
+            this.button_SQLempty.Location = new System.Drawing.Point(120, 133);
             this.button_SQLempty.Name = "button_SQLempty";
             this.button_SQLempty.Size = new System.Drawing.Size(39, 23);
             this.button_SQLempty.TabIndex = 15;
@@ -215,7 +216,7 @@
             this.checkBox_sql.AutoSize = true;
             this.checkBox_sql.Checked = true;
             this.checkBox_sql.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_sql.Location = new System.Drawing.Point(393, 110);
+            this.checkBox_sql.Location = new System.Drawing.Point(12, 137);
             this.checkBox_sql.Name = "checkBox_sql";
             this.checkBox_sql.Size = new System.Drawing.Size(42, 16);
             this.checkBox_sql.TabIndex = 16;
@@ -225,7 +226,7 @@
             // button_SQLAuditFile
             // 
             this.button_SQLAuditFile.AutoSize = true;
-            this.button_SQLAuditFile.Location = new System.Drawing.Point(432, 106);
+            this.button_SQLAuditFile.Location = new System.Drawing.Point(51, 133);
             this.button_SQLAuditFile.Name = "button_SQLAuditFile";
             this.button_SQLAuditFile.Size = new System.Drawing.Size(63, 23);
             this.button_SQLAuditFile.TabIndex = 14;
@@ -233,11 +234,23 @@
             this.button_SQLAuditFile.UseVisualStyleBackColor = true;
             this.button_SQLAuditFile.Click += new System.EventHandler(this.button_SQLAuditFile_Click);
             // 
+            // button_recoverySQL
+            // 
+            this.button_recoverySQL.AutoSize = true;
+            this.button_recoverySQL.Location = new System.Drawing.Point(165, 133);
+            this.button_recoverySQL.Name = "button_recoverySQL";
+            this.button_recoverySQL.Size = new System.Drawing.Size(87, 23);
+            this.button_recoverySQL.TabIndex = 17;
+            this.button_recoverySQL.Text = "按数据库还原";
+            this.button_recoverySQL.UseVisualStyleBackColor = true;
+            this.button_recoverySQL.Click += new System.EventHandler(this.button_recoverySQL_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(556, 136);
+            this.ClientSize = new System.Drawing.Size(556, 165);
+            this.Controls.Add(this.button_recoverySQL);
             this.Controls.Add(this.button_SQLAuditFile);
             this.Controls.Add(this.checkBox_sql);
             this.Controls.Add(this.button_SQLempty);
@@ -257,6 +270,7 @@
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.button1);
             this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "文件去重";
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -283,6 +297,7 @@
         private System.Windows.Forms.Button button_SQLempty;
         private System.Windows.Forms.CheckBox checkBox_sql;
         private System.Windows.Forms.Button button_SQLAuditFile;
+        private System.Windows.Forms.Button button_recoverySQL;
     }
 }
 
