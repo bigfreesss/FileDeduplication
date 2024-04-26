@@ -89,7 +89,7 @@ namespace 文件去重
                         foreach (string str in FilePathAll)
                         {
                             progressBar1.Maximum = FilePathAll.Length;
-                            label1.Text = $"扫描到文件：{FileGet.lst.Count} {progressBar1.Value}/{progressBar1.Maximum} 正确路径：{OK} 过滤路径：{error}";
+                            label1.Text = $"{progressBar1.Value}/{progressBar1.Maximum} 扫描到文件：{FileGet.lst.Count} 正确路径：{OK} 过滤路径：{error}";
                             if (FilePathAllList.FindIndex(o => o.Equals(str) || (o.Length > str.Length && o.Contains(str) && o.Remove(0, str.Length).Contains(@"\")) || (str.Length > o.Length && str.Contains(o) && str.Remove(0, o.Length).Contains(@"\"))) == -1)
                             {
                                 // 确保路径是完全限定的
@@ -161,7 +161,6 @@ namespace 文件去重
                         string sha256 = "";
                         string path = file.FullName;
                         var index = features.FindAll(o => o.size == file.Length);//先比较文件大小
-                        bool sqlBeData = true;
                         if (index.Count == 0)//文件大小不同
                         {
                             Features features1 = new Features();
@@ -199,10 +198,15 @@ namespace 文件去重
                                         sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
                                     //log($"计算哈希值用时：{(DateTime.Now - start).TotalSeconds}s", time);
 
-                                    string sql = $"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{path}','{file.Length}','{md5}','{Hash}','{sha256}','{file.LastWriteTime}')";
-                                    //log($"path={path}, size={file.Length}, md5={md5}, Hash={Hash}, SHA256={sha256}, LastWriteTime={file.LastWriteTime}", time);
-                                    SQLiteHelper.ExecuteSql(sql);//添加数据到数据库
-                                                                 //log($"写入数据库用时：{(DateTime.Now - start).TotalSeconds}s", time);
+                                    //string sql = $"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{path}','{file.Length}','{md5}','{Hash}','{sha256}','{file.LastWriteTime}')";
+                                    ////log($"path={path}, size={file.Length}, md5={md5}, Hash={Hash}, SHA256={sha256}, LastWriteTime={file.LastWriteTime}", time);
+                                    //SQLiteHelper.ExecuteSql(sql);//添加数据到数据库
+                                    //log($"写入数据库用时：{(DateTime.Now - start).TotalSeconds}s", time);
+                                    //更新数据
+                                    ArrayList SQLStringList = new ArrayList();
+                                    SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
+                                    SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{path}','{file.Length}','{md5}','{Hash}','{sha256}','{file.LastWriteTime}')");//添加数据到数据库
+                                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
                                 }
                                 else//数据库存在数据，从数据库中提取数据
                                 {
