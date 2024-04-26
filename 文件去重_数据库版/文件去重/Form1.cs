@@ -291,6 +291,7 @@ namespace 文件去重
                                     {
                                         file.Delete();
                                         log(oldpath + " 已删除", time);
+                                        NewPath = "";
                                     }
                                     else
                                     {
@@ -310,6 +311,11 @@ namespace 文件去重
 
                                     RepeatNum++;
                                     BeRepeat = true;
+                                    //更新数据到数据库
+                                    ArrayList SQLStringList = new ArrayList();
+                                    SQLStringList.Add($"delete from HistoricalPath where oldpath = '{oldpath}'");//删除数据
+                                    SQLStringList.Add($"insert into HistoricalPath(oldpath,NewPath,repeatPath,time) values('{oldpath}','{NewPath}','{index[i].path}','{time}')");//添加数据到数据库
+                                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
                                     break;
                                 }
                             }
