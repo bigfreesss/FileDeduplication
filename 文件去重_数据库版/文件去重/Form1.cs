@@ -161,6 +161,7 @@ namespace 文件去重
                         string sha256 = "";
                         string path = file.FullName;
                         var index = features.FindAll(o => o.size == file.Length);//先比较文件大小
+                        bool sqlBeData = true;
                         if (index.Count == 0)//文件大小不同
                         {
                             Features features1 = new Features();
@@ -209,7 +210,7 @@ namespace 文件去重
                                     if (data.Tables[0].Rows[0].Field<string>("size") == file.Length.ToString() &&
                                         (data.Tables[0].Rows[0].Field<string>("LastWriteTime")) == file.LastWriteTime.ToString())//判断更新时间和大小是否匹配
                                     {
-                                        log($"数据库存在数据：{path}", time);
+                                        log($"数据库存在数据：{path}", time); 
                                         md5 = data.Tables[0].Rows[0].Field<string>("md5");
                                         Hash = data.Tables[0].Rows[0].Field<string>("Hash");
                                         sha256 = data.Tables[0].Rows[0].Field<string>("SHA256");
@@ -254,22 +255,28 @@ namespace 文件去重
                                 log($"数据库添加数据：{RepeatPossible.path}", time);
                                 if (RepeatPossible.md5 == null && md5Open)
                                 {
+                                    sqlBeData = false;
                                     RepeatPossible.md5 = GetMD5HashFromFile(RepeatPossible.path);
                                 }
                                 if (RepeatPossible.Hash == null && HashOpen)
                                 {
+                                    sqlBeData = false;
                                     RepeatPossible.Hash = GetHash(RepeatPossible.path);
                                 }
                                 if (RepeatPossible.SHA256 == null && sha256Open)
                                 {
+                                    sqlBeData = false;
                                     RepeatPossible.SHA256 = general_sha256_code(RepeatPossible.path, Sha26ParseType.StreamType);
                                 }
-                                //更新数据到数据库
-                                //SQLiteHelper.ExecuteSql($"update file SET size = '{RepeatPossible.size}'  md5 = '{RepeatPossible.md5}' , Hash = '{RepeatPossible.Hash}' , SHA256 = '{RepeatPossible.SHA256}',LastWriteTime ='{RepeatPossible.LastWriteTime}' WHERE path = '{RepeatPossible.path}'");
-                                ArrayList SQLStringList = new ArrayList();
-                                SQLStringList.Add($"delete from file where path = '{RepeatPossible.path}'");//删除数据
-                                SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{RepeatPossible.path}','{RepeatPossible.size}','{RepeatPossible.md5}','{RepeatPossible.Hash}','{RepeatPossible.SHA256}','{RepeatPossible.LastWriteTime}')");//添加数据到数据库
-                                SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                                if(!sqlBeData)
+                                {
+                                    //更新数据到数据库
+                                    //SQLiteHelper.ExecuteSql($"update file SET size = '{RepeatPossible.size}'  md5 = '{RepeatPossible.md5}' , Hash = '{RepeatPossible.Hash}' , SHA256 = '{RepeatPossible.SHA256}',LastWriteTime ='{RepeatPossible.LastWriteTime}' WHERE path = '{RepeatPossible.path}'");
+                                    ArrayList SQLStringList = new ArrayList();
+                                    SQLStringList.Add($"delete from file where path = '{RepeatPossible.path}'");//删除数据
+                                    SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{RepeatPossible.path}','{RepeatPossible.size}','{RepeatPossible.md5}','{RepeatPossible.Hash}','{RepeatPossible.SHA256}','{RepeatPossible.LastWriteTime}')");//添加数据到数据库
+                                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                                }
                                 if (md5 == RepeatPossible.md5 && Hash == RepeatPossible.Hash)
                                 {
                                     //确定为同一文件
@@ -1082,6 +1089,68 @@ namespace 文件去重
                 }
             );
             }
+        }
+        Features sqlquery(Features features,string time,bool md5Open, bool HashOpen, bool sha256Open)
+        {
+            //查找数据库数据
+            var data = SQLiteHelper.Query(string.Format("select path,size,md5,Hash,SHA256,LastWriteTime from file where path = '{0}'", features.path));
+            //log($"查找数据库用时：{(DateTime.Now - start).TotalSeconds}s", time);
+            if (data.Tables[0].Rows.Count != 1)//数据库不存在数据或有重复数据
+            {
+                if (data.Tables[0].Rows.Count > 1)//有重复数据
+                {
+                    log($"数据库有重复数据：{features.path}", time);
+                    SQLiteHelper.ExecuteSql($"delete from file where path = '{features.path}'");//删除数据
+                }
+                log($"数据库无数据：{features.path}", time);
+                var start = DateTime.Now;
+                //当前文件的md5和hash
+                if (md5Open)
+                    features.md5 = GetMD5HashFromFile(features.path);
+                if (HashOpen)
+                    features.Hash = GetHash(features.path);
+                if (sha256Open)
+                {
+                    features.SHA256 = general_sha256_code(features.path, Sha26ParseType.StreamType);
+                }
+                //log($"计算哈希值用时：{(DateTime.Now - start).TotalSeconds}s", time);
+
+                string sql = $"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{features.path}','{features.size}','{features.md5}','{features.Hash}','{features.SHA256}','{features.LastWriteTime}')";
+                //log($"path={path}, size={file.Length}, md5={md5}, Hash={Hash}, SHA256={sha256}, LastWriteTime={file.LastWriteTime}", time);
+                SQLiteHelper.ExecuteSql(sql);//添加数据到数据库
+                                             //log($"写入数据库用时：{(DateTime.Now - start).TotalSeconds}s", time);
+            }
+            else//数据库存在数据，从数据库中提取数据
+            {
+                var start = DateTime.Now;
+                if (data.Tables[0].Rows[0].Field<string>("size") == features.size.ToString() &&
+                    (data.Tables[0].Rows[0].Field<string>("LastWriteTime")) == features.LastWriteTime.ToString())//判断更新时间和大小是否匹配
+                {
+                    log($"数据库存在数据：{features.path}", time);
+                    features.md5 = data.Tables[0].Rows[0].Field<string>("md5");
+                    features.Hash = data.Tables[0].Rows[0].Field<string>("Hash");
+                    features.SHA256 = data.Tables[0].Rows[0].Field<string>("SHA256");
+                }
+                else
+                {
+                    log($"数据库更新数据：{features.path}", time);
+                    //当前文件的md5和hash
+                    if (md5Open)
+                        features.md5 = GetMD5HashFromFile(features.path);
+                    if (HashOpen)
+                        features.Hash = GetHash(features.path);
+                    if (sha256Open)
+                        features.SHA256 = general_sha256_code(features.path, Sha26ParseType.StreamType);
+                    //更新数据
+                    //SQLiteHelper.ExecuteSql($"update file SET size = '{file.Length}', md5 = '{md5}' , Hash = '{Hash}' , SHA256 = '{sha256}', LastWriteTime ='{file.LastWriteTime}' WHERE path = '{path}'");
+                    ArrayList SQLStringList = new ArrayList();
+                    SQLStringList.Add($"delete from file where path = '{features.path}'");//删除数据
+                    SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{features.path}','{features.size}','{features.md5}','{features.Hash}','{features.SHA256}','{features.LastWriteTime}')");//添加数据到数据库
+                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                }
+                //log($"从数据库读取用时：{(DateTime.Now - start).TotalSeconds}s", time);
+            }
+            return features;
         }
     }
 }
