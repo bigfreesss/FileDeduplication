@@ -49,6 +49,9 @@ namespace 文件去重
             public string oldPath { get; set; }
             public string newPath { get; set; }
         }
+        /// <summary>
+        /// 历史信息列表
+        /// </summary>
         List<HistoricalPath> historicalPaths = new List<HistoricalPath>();
         /// <summary>
         /// 从数据库读取数据的字典
@@ -78,6 +81,7 @@ namespace 文件去重
                     if (keyValuePairs.ContainsKey(features_sql.path))
                     {
                         //数据库有重复数据
+                        log($"数据库有重复数据：{features_sql.path}", time);
                         SQLStringList.Add($"delete from file where path = '{features_sql.path}'");
                     }
                     else
@@ -179,7 +183,7 @@ namespace 文件去重
                 int NoRepeatNum = 0;//不重复文件个数
                 int ErrorNum = 0;
                 string NewPath = "";
-
+                
                 List<Features> features = new List<Features>();
                 foreach (FileInfo file in FileGet.lst)
                 {
@@ -974,7 +978,7 @@ namespace 文件去重
                 MessageBox.Show(ex.Message);
             }
         }
-        bool test = true;//测试用
+        bool test = false;//测试用
         private void button_SQLAuditFile_Click(object sender, EventArgs e)
         {
             DialogResult dialogResult = MessageBox.Show("是否去除无效文件？", "警告", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
@@ -1135,7 +1139,7 @@ namespace 文件去重
             //查找数据库数据
             if (!keyValuePairs.ContainsKey(features.path))//数据库不存在数据
             {
-                log($"数据库无数据：{features.path}", time);
+                //log($"数据库无数据：{features.path}", time);
                 //当前文件的md5和hash
                 if (md5Open)
                     features.md5 = GetMD5HashFromFile(features.path);
@@ -1152,12 +1156,12 @@ namespace 文件去重
                 var keyValuePairs1 = keyValuePairs[features.path];//读取字典数据
                 if (keyValuePairs1.size == features.size.ToString() && keyValuePairs1.LastWriteTime == features.LastWriteTime.ToString())
                 {
-                    log($"数据库存在数据：{features.path}", time);
+                    //log($"数据库存在数据：{features.path}", time);
                     features.md5 = keyValuePairs1.md5;
                     features.Hash = keyValuePairs1.Hash;
                     features.sha256 = keyValuePairs1.sha256;
                 }
-                else
+                else//数据过期
                 {
                     log($"数据库更新数据：{features.path}", time);
                     //当前文件的md5和hash
