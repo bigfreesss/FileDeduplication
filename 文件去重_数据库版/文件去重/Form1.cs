@@ -7,13 +7,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Net.WebRequestMethods;
 
 
 namespace 文件去重
 {
     public partial class Form1 : Form
     {
-        //DataSet data;
         public Form1()
         {
             try
@@ -25,7 +25,6 @@ namespace 文件去重
                     Directory.CreateDirectory(textBox1.Text);
                 }
                 SQLiteHelper.ExecuteSql("vacuum");//数据库收缩指令
-                //data = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file");
             }
             catch (Exception ex)
             {
@@ -36,11 +35,11 @@ namespace 文件去重
         class Features
         {
             public string path { get; set; }
-            public long size { get; set; }
+            public string size { get; set; }
             public string md5 { get; set; }
             public string Hash { get; set; }//sha1
             public string SHA256 { get; set; }
-            public DateTime LastWriteTime { get; set; }
+            public string LastWriteTime { get; set; }
             //public FileInfo file { get; set; }
         }
         class HistoricalPath
@@ -57,6 +56,32 @@ namespace 文件去重
             string time = DateTime.Now.ToString("yyyyMMdd-HH-mm-ss");
             try
             {
+                //加载数据库数据
+                ArrayList SQLStringList = new ArrayList();
+                DataSet data_sql = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file");
+                Dictionary<string, Features> keyValuePairs = new Dictionary<string, Features>();
+                for (int i = 0; i < data_sql.Tables[0].Rows.Count; i++)
+                {
+                    Features features_sql = new Features();
+                    features_sql.path = data_sql.Tables[0].Rows[i].Field<string>("path");
+                    features_sql.size = data_sql.Tables[0].Rows[i].Field<string>("size");
+                    features_sql.md5 = data_sql.Tables[0].Rows[i].Field<string>("md5");
+                    features_sql.Hash = data_sql.Tables[0].Rows[i].Field<string>("Hash");
+                    features_sql.SHA256 = data_sql.Tables[0].Rows[i].Field<string>("SHA256");
+                    features_sql.LastWriteTime = data_sql.Tables[0].Rows[i].Field<string>("LastWriteTime");
+                    if (keyValuePairs.ContainsKey(features_sql.path))
+                    {
+                        //数据库有重复数据
+                        SQLStringList.Add($"delete from file where path = '{features_sql.path}'");
+                    }
+                    else
+                    {
+                        keyValuePairs.Add(features_sql.path, features_sql);
+                    }
+                }
+                SQLiteHelper.ExecuteSqlTran(SQLStringList);//统一删除数据
+                SQLStringList.Clear();
+
                 button1.Enabled = false;
                 bool DirOnlyHere_time = DirOnlyHere;
                 DirOnlyHere = false;
@@ -160,14 +185,14 @@ namespace 文件去重
                         string Hash = "";
                         string sha256 = "";
                         string path = file.FullName;
-                        var index = features.FindAll(o => o.size == file.Length);//先比较文件大小
+                        var index = features.FindAll(o => o.size == file.Length.ToString());//先比较文件大小
                         if (index.Count == 0)//文件大小不同
                         {
                             Features features1 = new Features();
                             DateTime start = DateTime.Now;
-                            features1.size = file.Length;
+                            features1.size = file.Length.ToString();
                             features1.path = path;
-                            features1.LastWriteTime = file.LastWriteTime;
+                            features1.LastWriteTime = file.LastWriteTime.ToString();
                             //features1.file = file;
                             features.Add(features1);
                             NoRepeatNum++;
@@ -178,15 +203,24 @@ namespace 文件去重
                             if (checkBox_sql.Checked)
                             {
                                 //查找数据库数据
-                                var data = SQLiteHelper.Query(string.Format("select path,size,md5,Hash,SHA256,LastWriteTime from file where path = '{0}'", path));
+                                //DataSet data = SQLiteHelper.Query(string.Format("select path,size,md5,Hash,SHA256,LastWriteTime from file where path = '{0}'", path));
+
+                                //使用字典数据
+                                //if (keyValuePairs.ContainsKey(file.FullName))
+                                //{
+                                //    var keyValuePairs1 = keyValuePairs[file.FullName];//读取数据
+                                //    //keyValuePairs1.path
+                                //    keyValuePairs.Remove(file.FullName);//删除
+                                //}
+
                                 //log($"查找数据库用时：{(DateTime.Now - start).TotalSeconds}s", time);
-                                if (data.Tables[0].Rows.Count != 1)//数据库不存在数据或有重复数据
+                                if (!keyValuePairs.ContainsKey(file.FullName))//数据库不存在数据
                                 {
-                                    if (data.Tables[0].Rows.Count > 1)//有重复数据
-                                    {
-                                        log($"数据库有重复数据：{path}",time);
-                                        SQLiteHelper.ExecuteSql($"delete from file where path = '{path}'");//删除数据
-                                    }
+                                    //if (data.Tables[0].Rows.Count > 1)//有重复数据
+                                    //{
+                                    //    log($"数据库有重复数据：{path}",time);
+                                    //    SQLiteHelper.ExecuteSql($"delete from file where path = '{path}'");//删除数据
+                                    //}
                                     log($"数据库无数据：{path}", time);
                                     start = DateTime.Now;
                                     //当前文件的md5和hash
@@ -203,21 +237,27 @@ namespace 文件去重
                                     //SQLiteHelper.ExecuteSql(sql);//添加数据到数据库
                                     //log($"写入数据库用时：{(DateTime.Now - start).TotalSeconds}s", time);
                                     //更新数据
-                                    ArrayList SQLStringList = new ArrayList();
                                     SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
                                     SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{path}','{file.Length}','{md5}','{Hash}','{sha256}','{file.LastWriteTime}')");//添加数据到数据库
-                                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
                                 }
                                 else//数据库存在数据，从数据库中提取数据
                                 {
                                     start = DateTime.Now;
-                                    if (data.Tables[0].Rows[0].Field<string>("size") == file.Length.ToString() &&
-                                        (data.Tables[0].Rows[0].Field<string>("LastWriteTime")) == file.LastWriteTime.ToString())//判断更新时间和大小是否匹配
+                                    //if (data.Tables[0].Rows[0].Field<string>("size") == file.Length.ToString() &&
+                                    //    (data.Tables[0].Rows[0].Field<string>("LastWriteTime")) == file.LastWriteTime.ToString())//判断更新时间和大小是否匹配
+                                    //{
+                                    //    log($"数据库存在数据：{path}", time); 
+                                    //    md5 = data.Tables[0].Rows[0].Field<string>("md5");
+                                    //    Hash = data.Tables[0].Rows[0].Field<string>("Hash");
+                                    //    sha256 = data.Tables[0].Rows[0].Field<string>("SHA256");
+                                    //}
+                                    var keyValuePairs1 = keyValuePairs[file.FullName];//读取字典数据
+                                    if (keyValuePairs1.size == file.Length.ToString() && keyValuePairs1.LastWriteTime == file.LastWriteTime.ToString())
                                     {
-                                        log($"数据库存在数据：{path}", time); 
-                                        md5 = data.Tables[0].Rows[0].Field<string>("md5");
-                                        Hash = data.Tables[0].Rows[0].Field<string>("Hash");
-                                        sha256 = data.Tables[0].Rows[0].Field<string>("SHA256");
+                                        log($"数据库存在数据：{path}", time);
+                                        md5 = keyValuePairs1.md5;
+                                        Hash = keyValuePairs1.Hash;
+                                        sha256 = keyValuePairs1.SHA256;
                                     }
                                     else
                                     {
@@ -231,7 +271,6 @@ namespace 文件去重
                                             sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
                                         //更新数据
                                         //SQLiteHelper.ExecuteSql($"update file SET size = '{file.Length}', md5 = '{md5}' , Hash = '{Hash}' , SHA256 = '{sha256}', LastWriteTime ='{file.LastWriteTime}' WHERE path = '{path}'");
-                                        ArrayList SQLStringList = new ArrayList();
                                         SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
                                         SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{path}','{file.Length}','{md5}','{Hash}','{sha256}','{file.LastWriteTime}')");//添加数据到数据库
                                         SQLiteHelper.ExecuteSqlTran(SQLStringList);
@@ -312,7 +351,6 @@ namespace 文件去重
                                     RepeatNum++;
                                     BeRepeat = true;
                                     //更新数据到数据库
-                                    ArrayList SQLStringList = new ArrayList();
                                     SQLStringList.Add($"delete from HistoricalPath where oldpath = '{oldpath}'");//删除数据
                                     SQLStringList.Add($"insert into HistoricalPath(oldpath,NewPath,repeatPath,time) values('{oldpath}','{NewPath}','{index[i].path}','{time}')");//添加数据到数据库
                                     SQLiteHelper.ExecuteSqlTran(SQLStringList);
@@ -323,12 +361,12 @@ namespace 文件去重
                             {
                                 NoRepeatNum++;
                                 Features features1 = new Features();
-                                features1.size = file.Length;
+                                features1.size = file.Length.ToString();
                                 features1.path = path;
                                 features1.md5 = md5;
                                 features1.Hash = Hash;
                                 features1.SHA256 = sha256;
-                                features1.LastWriteTime = file.LastWriteTime;
+                                features1.LastWriteTime = file.LastWriteTime.ToString();
                                 //features1.file = file;
                                 features.Add(features1);
                             }
@@ -356,6 +394,7 @@ namespace 文件去重
                         DeleteNullFileRecursion(str, time);
                     }
                 }
+                SQLiteHelper.ExecuteSqlTran(SQLStringList);//统一更新数据库
                 button1.Enabled = true;
             }
             catch (Exception ex)
@@ -370,9 +409,18 @@ namespace 文件去重
         int RepeatNum = 0;//重复文件个数
         private void button1_Click(object sender, EventArgs e)
         {
-            Task.Factory.StartNew(() => 
-            FileDuplicateRemoval()
-            );
+            if (test)
+            {
+                FileDuplicateRemoval();
+            }
+            else
+            {
+                Task.Factory.StartNew(() =>
+                {
+                    FileDuplicateRemoval();
+                }
+                );
+            }
         }
 
         List<string> names = new List<string>();//移动后文件名
@@ -538,12 +586,12 @@ namespace 文件去重
                 path = path + "\\" + DateTime.Now.ToString("yyyyMMdd") + ".txt";
             else
                 path = path + "\\" + time + ".txt";
-            if (!File.Exists(path))
+            if (!System.IO.File.Exists(path))
             {
-                FileStream fs = File.Create(path);
+                FileStream fs = System.IO.File.Create(path);
                 fs.Close();
             }
-            if (File.Exists(path))
+            if (System.IO.File.Exists(path))
             {
                 StreamWriter sw = new StreamWriter(path, true, System.Text.Encoding.UTF8);
                 sw.WriteLine(DateTime.Now.ToString("HH:mm:ss.fff ") + content);
@@ -740,7 +788,7 @@ namespace 文件去重
                         try
                         {
                             progressBar1.Maximum = historicalPaths.Count;
-                            if (File.Exists(historicalPaths[i].newPath))
+                            if (System.IO.File.Exists(historicalPaths[i].newPath))
                             {
                                 FileInfo file = new FileInfo(historicalPaths[i].newPath);
                                 file.MoveTo(historicalPaths[i].oldPath);
@@ -829,7 +877,7 @@ namespace 文件去重
 
                                 if (MovePath.Length == 2)
                                 {
-                                    if (File.Exists(MovePath[1]))
+                                    if (System.IO.File.Exists(MovePath[1]))
                                     {
                                         FileInfo file = new FileInfo(MovePath[1]);
                                         file.MoveTo(MovePath[0]);
@@ -1036,68 +1084,79 @@ namespace 文件去重
                 MessageBox.Show(ex.Message);
             }
         }
-
+        bool test = true;//测试用
         private void button_SQLAuditFile_Click(object sender, EventArgs e)
         {
             DialogResult dialogResult = MessageBox.Show("是否去除无效文件？", "警告", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (dialogResult == DialogResult.Yes)
             {
-                Task.Factory.StartNew(() =>
+                if (test)
                 {
-                    try
-                    {
-                        button_SQLAuditFile.Enabled = false;
-                        var data = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file");
-                        int index = 0;
-                        int nobe = 0;
-                        int timediff = 0;
-                        int OK = 0;
-
-                        ArrayList SQLStringList = new ArrayList();
-
-                        for (int i = 0; i < data.Tables[0].Rows.Count; i++)
-                        {
-                            progressBar1.Maximum = data.Tables[0].Rows.Count;
-                            string path = data.Tables[0].Rows[i].Field<string>("path");
-                            string LastWriteTime = data.Tables[0].Rows[i].Field<string>("LastWriteTime");
-                            //log(path);
-                            //log(LastWriteTime);
-                            if (File.Exists(path))
-                            {
-                                FileInfo file = new FileInfo(path);
-                                if (!(file.LastWriteTime.ToString() == LastWriteTime))
-                                {
-                                    //时间不匹配
-                                    SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
-                                    timediff++;
-                                }
-                                else
-                                {
-                                    OK++;
-                                }
-                            }
-                            else
-                            {
-                                //文件不存在
-                                SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
-                                nobe++;
-                            }
-                            progressBar1.Value = ++index;
-                            string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
-                            if (progressBar1.Value == progressBar1.Maximum)
-                                percentage = "100";
-                            label1.Text = $"{progressBar1.Value}/{progressBar1.Maximum} {percentage}% 文件正常：{OK} 时间不匹配：{timediff} 文件不存在：{nobe}";
-                        }
-                        SQLiteHelper.ExecuteSqlTran(SQLStringList);
-                        button_SQLAuditFile.Enabled = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        log(ex.ToString());
-                        MessageBox.Show(ex.Message);
-                    }
+                    SQLAuditFile();
                 }
-            );
+                else
+                {
+                    Task.Factory.StartNew(() =>
+                    {
+                        SQLAuditFile();
+                    }
+                    );
+                }
+            }
+        }
+        void SQLAuditFile()
+        {
+            try
+            {
+                button_SQLAuditFile.Enabled = false;
+                var data = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file");
+                int index = 0;
+                int nobe = 0;
+                int timediff = 0;
+                int OK = 0;
+
+                ArrayList SQLStringList = new ArrayList();
+
+                for (int i = 0; i < data.Tables[0].Rows.Count; i++)
+                {
+                    progressBar1.Maximum = data.Tables[0].Rows.Count;
+                    string path = data.Tables[0].Rows[i].Field<string>("path");
+                    string LastWriteTime = data.Tables[0].Rows[i].Field<string>("LastWriteTime");
+                    //log(path);
+                    //log(LastWriteTime);
+                    if (System.IO.File.Exists(path))
+                    {
+                        FileInfo file = new FileInfo(path);
+                        if (!(file.LastWriteTime.ToString() == LastWriteTime))
+                        {
+                            //时间不匹配
+                            SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
+                            timediff++;
+                        }
+                        else
+                        {
+                            OK++;
+                        }
+                    }
+                    else
+                    {
+                        //文件不存在
+                        SQLStringList.Add($"delete from file where path = '{path}'");//删除数据
+                        nobe++;
+                    }
+                    progressBar1.Value = ++index;
+                    string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
+                    if (progressBar1.Value == progressBar1.Maximum)
+                        percentage = "100";
+                    label1.Text = $"{progressBar1.Value}/{progressBar1.Maximum} {percentage}% 文件正常：{OK} 时间不匹配：{timediff} 文件不存在：{nobe}";
+                }
+                SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                button_SQLAuditFile.Enabled = true;
+            }
+            catch (Exception ex)
+            {
+                log(ex.ToString());
+                MessageBox.Show(ex.Message);
             }
         }
         Features sqlquery(Features features,string time,bool md5Open, bool HashOpen, bool sha256Open)
@@ -1184,7 +1243,7 @@ namespace 文件去重
                         string NewPath = data.Tables[0].Rows[i].Field<string>("NewPath");
                         string repeatPath = data.Tables[0].Rows[i].Field<string>("repeatPath");
                         string time = data.Tables[0].Rows[i].Field<string>("time");
-                        if (!File.Exists(NewPath))
+                        if (!System.IO.File.Exists(NewPath))
                         {
                             //新文件不存在
                             NoFileExists++;
@@ -1192,7 +1251,7 @@ namespace 文件去重
                         }
                         else
                         {
-                            if (File.Exists(oldpath))
+                            if (System.IO.File.Exists(oldpath))
                             {
                                 //老文件存在
                                 errNum++;
