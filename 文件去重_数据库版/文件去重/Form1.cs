@@ -65,6 +65,7 @@ namespace 文件去重
             string time = DateTime.Now.ToString("yyyyMMdd-HH-mm-ss");
             try
             {
+                button1.Enabled = false;
                 //加载数据库数据
                 ArrayList SQLStringList = new ArrayList();
                 DataSet data_sql = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file"); 
@@ -92,7 +93,6 @@ namespace 文件去重
                 SQLiteHelper.ExecuteSqlTran(SQLStringList);//统一删除数据
                 SQLStringList.Clear();
 
-                button1.Enabled = false;
                 bool DirOnlyHere_time = DirOnlyHere;
                 DirOnlyHere = false;
                 log("加载中", time);
