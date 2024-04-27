@@ -37,7 +37,7 @@ namespace 文件去重
         class Features
         {
             public string path { get; set; }
-            public string size { get; set; }
+            public long size { get; set; }
             public string md5 { get; set; }
             public string Hash { get; set; }//sha1
             public string sha256 { get; set; }
@@ -56,7 +56,11 @@ namespace 文件去重
         /// <summary>
         /// 从数据库读取数据的字典
         /// </summary>
-        Dictionary<string, Features> keyValuePairs = new Dictionary<string, Features>();
+        Dictionary<string, Features> sql_Dictionary = new Dictionary<string, Features>();
+        /// <summary>
+        /// //相同文件大小的文件列表
+        /// </summary>
+        Dictionary<long, List<Features>> EqualsizeFile = new Dictionary<long, List<Features>>();
         /// <summary>
         /// 文件去重本体
         /// </summary>
@@ -66,32 +70,32 @@ namespace 文件去重
             try
             {
                 button1.Enabled = false;
-                //加载数据库数据
-                ArrayList SQLStringList = new ArrayList();
-                DataSet data_sql = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file"); 
-                keyValuePairs.Clear();//清空数据
-                for (int i = 0; i < data_sql.Tables[0].Rows.Count; i++)
-                {
-                    Features features_sql = new Features();
-                    features_sql.path = data_sql.Tables[0].Rows[i].Field<string>("path");
-                    features_sql.size = data_sql.Tables[0].Rows[i].Field<string>("size");
-                    features_sql.md5 = data_sql.Tables[0].Rows[i].Field<string>("md5");
-                    features_sql.Hash = data_sql.Tables[0].Rows[i].Field<string>("Hash");
-                    features_sql.sha256 = data_sql.Tables[0].Rows[i].Field<string>("SHA256");
-                    features_sql.LastWriteTime = data_sql.Tables[0].Rows[i].Field<string>("LastWriteTime");
-                    if (keyValuePairs.ContainsKey(features_sql.path))
-                    {
-                        //数据库有重复数据
-                        log($"数据库有重复数据：{features_sql.path}", time);
-                        SQLStringList.Add($"delete from file where path = '{features_sql.path}'");
-                    }
-                    else
-                    {
-                        keyValuePairs.Add(features_sql.path, features_sql);
-                    }
-                }
-                SQLiteHelper.ExecuteSqlTran(SQLStringList);//统一删除数据
-                SQLStringList.Clear();
+                ////加载数据库数据
+                //ArrayList SQLStringList = new ArrayList();
+                //DataSet data_sql = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file"); 
+                //sql_Dictionary.Clear();//清空数据
+                //for (int i = 0; i < data_sql.Tables[0].Rows.Count; i++)
+                //{
+                //    Features features_sql = new Features();
+                //    features_sql.path = data_sql.Tables[0].Rows[i].Field<string>("path");
+                //    features_sql.size = data_sql.Tables[0].Rows[i].Field<long>("size");
+                //    features_sql.md5 = data_sql.Tables[0].Rows[i].Field<string>("md5");
+                //    features_sql.Hash = data_sql.Tables[0].Rows[i].Field<string>("Hash");
+                //    features_sql.sha256 = data_sql.Tables[0].Rows[i].Field<string>("SHA256");
+                //    features_sql.LastWriteTime = data_sql.Tables[0].Rows[i].Field<string>("LastWriteTime");
+                //    if (sql_Dictionary.ContainsKey(features_sql.path))
+                //    {
+                //        //数据库有重复数据
+                //        log($"数据库有重复数据：{features_sql.path}", time);
+                //        SQLStringList.Add($"delete from file where path = '{features_sql.path}'");
+                //    }
+                //    else
+                //    {
+                //        sql_Dictionary.Add(features_sql.path, features_sql);
+                //    }
+                //}
+                //SQLiteHelper.ExecuteSqlTran(SQLStringList);//统一删除数据
+                //SQLStringList.Clear();
 
                 bool DirOnlyHere_time = DirOnlyHere;
                 DirOnlyHere = false;
@@ -192,11 +196,11 @@ namespace 文件去重
                         progressBar1.Maximum = FileGet.lst.Count;
                         //当前文件的信息
                         Features features1 = new Features();
-                        features1.size = file.Length.ToString();
+                        features1.size = file.Length;
                         features1.path = file.FullName;
                         features1.LastWriteTime = file.LastWriteTime.ToString();
                         //总列表中和当前文件大小相同的新列表
-                        var index = features.FindAll(o => o.size == file.Length.ToString());
+                        var index = features.FindAll(o => o.size == file.Length);
 
                         if (index.Count == 0)//文件大小不同
                         {
@@ -207,7 +211,7 @@ namespace 文件去重
                         {
                             if (checkBox_sql.Checked)
                             {
-                                features1 = sql_Dictionary_query(features1, time, md5Open, HashOpen, sha256Open, ref SQLStringList);
+                                features1 = sqlquery(features1, time, md5Open, HashOpen, sha256Open);
                             }
                             else//不使用数据库模式
                             {
@@ -223,7 +227,7 @@ namespace 文件去重
                             for (int i = 0;i< index.Count;i++)//所有文件大小相同的文件
                             {
                                 //index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
-                                index[i] = sql_Dictionary_query(index[i], time, md5Open, HashOpen, sha256Open, ref SQLStringList);
+                                index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
                                 if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash)
                                 {
                                     //确定为同一文件
@@ -258,6 +262,7 @@ namespace 文件去重
                                     features.Add(features1);
 
                                     //更新数据到数据库
+                                    ArrayList SQLStringList = new ArrayList();
                                     SQLStringList.Add($"delete from HistoricalPath where oldpath = '{oldpath}'");//删除数据
                                     SQLStringList.Add($"insert into HistoricalPath(oldpath,NewPath,repeatPath,time) values('{oldpath}','{NewPath}','{index[i].path}','{time}')");//添加数据到数据库
                                     SQLiteHelper.ExecuteSqlTran(SQLStringList);
@@ -288,7 +293,7 @@ namespace 文件去重
                         DeleteNullFileRecursion(str, time);
                     }
                 }
-                SQLiteHelper.ExecuteSqlTran(SQLStringList);//统一更新数据库
+                //SQLiteHelper.ExecuteSqlTran(SQLStringList);//统一更新数据库
                 button1.Enabled = true;
             }
             catch (Exception ex)
@@ -659,7 +664,46 @@ namespace 文件去重
                 DeleteNullFile(FileGet.PathList[i], time);
             }
         }
-
+        void recovery()
+        {
+            int index = 0;
+            int NoFileExists = 0;
+            int ErrorNum = 0;
+            int SuccessNum = 0;
+            for (int i = 0; i < historicalPaths.Count; i++)
+            {
+                try
+                {
+                    progressBar1.Maximum = historicalPaths.Count;
+                    if (System.IO.File.Exists(historicalPaths[i].newPath))
+                    {
+                        FileInfo file = new FileInfo(historicalPaths[i].newPath);
+                        file.MoveTo(historicalPaths[i].oldPath);
+                        log(historicalPaths[i].newPath + " 已还原到：" + historicalPaths[i].oldPath);
+                        SuccessNum++;
+                    }
+                    else
+                    {
+                        log(historicalPaths[i].newPath + " 文件不存在！");
+                        NoFileExists++;
+                    }
+                    progressBar1.Value = ++index;
+                }
+                catch (Exception ex)
+                {
+                    progressBar1.Value = ++index;
+                    ErrorNum++;
+                    log("错误：" + ex);
+                }
+                string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
+                if (progressBar1.Value == progressBar1.Maximum)
+                    percentage = "100";
+                label1.Text = progressBar1.Value + "/" + progressBar1.Maximum + " " + percentage + "% 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists + " 错误文件：" + ErrorNum;
+            }
+            button_recovery.Enabled = true;
+            button_recovery.Text = "即时还原";
+            DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
+        }
         /// <summary>
         /// 还原文件
         /// </summary>
@@ -671,46 +715,15 @@ namespace 文件去重
             {
                 button_recovery.Text = "正在还原";
                 button_recovery.Enabled = false;
-                int index = 0;
-                int NoFileExists = 0;
-                int ErrorNum = 0;
-                int SuccessNum = 0;
-                Task.Factory.StartNew(() =>
+                if (test)
+                    recovery();
+                else
                 {
-                    for (int i = 0; i < historicalPaths.Count; i++)
+                    Task.Factory.StartNew(() =>
                     {
-                        try
-                        {
-                            progressBar1.Maximum = historicalPaths.Count;
-                            if (System.IO.File.Exists(historicalPaths[i].newPath))
-                            {
-                                FileInfo file = new FileInfo(historicalPaths[i].newPath);
-                                file.MoveTo(historicalPaths[i].oldPath);
-                                log(historicalPaths[i].newPath + " 已还原到：" + historicalPaths[i].oldPath);
-                                SuccessNum++;
-                            }
-                            else
-                            {
-                                log(historicalPaths[i].newPath + " 文件不存在！");
-                                NoFileExists++;
-                            }
-                            progressBar1.Value = ++index;
-                        }
-                        catch (Exception ex)
-                        {
-                            progressBar1.Value = ++index;
-                            ErrorNum++;
-                            log("错误：" + ex);
-                        }
-                        string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
-                        if (progressBar1.Value == progressBar1.Maximum)
-                            percentage = "100";
-                        label1.Text = progressBar1.Value + "/" + progressBar1.Maximum + " " + percentage + "% 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists + " 错误文件：" + ErrorNum;
-                    }
-                    button_recovery.Enabled = true;
-                    button_recovery.Text = "即时还原";
-                    DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
-                });
+                        recovery();
+                    });
+                }
             }
             catch (Exception ex)
             {
@@ -720,7 +733,66 @@ namespace 文件去重
                 button_recovery.Enabled = true;
             }
         }
+        void recoveryLog(OpenFileDialog openfile)
+        {
+            button_recoveryLog.Text = "正在还原";
+            int SuccessNum = 0;
+            int NoFileExists = 0;
+            int AllfileNum = 0;
+            List<string> Allfile = new List<string>();
+            StreamReader sr = new StreamReader(openfile.FileName, Encoding.Default);
+            string[] Separator = { " 已移动到： " };
+            string timestr = "21:03:53.683 ";
+            try
+            {
+                string content;
+                while ((content = sr.ReadLine()) != null)
+                {
+                    if (content.Contains(Separator[0]))
+                    {
+                        Allfile.Add(content);
+                        AllfileNum++;
+                    }
+                }
+                sr.Close();
 
+                int index = 0;
+                progressBar1.Value = 0;
+
+                foreach (string str in Allfile)
+                {
+                    progressBar1.Maximum = Allfile.Count;
+                    string[] MovePath = str.Substring(timestr.Length, str.Length - timestr.Length).Split(Separator, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (MovePath.Length == 2)
+                    {
+                        if (System.IO.File.Exists(MovePath[1]))
+                        {
+                            FileInfo file = new FileInfo(MovePath[1]);
+                            file.MoveTo(MovePath[0]);
+                            SuccessNum++;
+                        }
+                        else
+                            NoFileExists++;
+                        //log("新路径: " + MovePath[1]);
+                        //log("旧路径: " + MovePath[0]);
+                    }
+                    progressBar1.Value = ++index;
+                    string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
+                    if (progressBar1.Value == progressBar1.Maximum)
+                        percentage = "100";
+                    label1.Text = index + "/" + progressBar1.Maximum + " " + percentage + "% 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists;
+                }
+                button_recoveryLog.Text = "日志还原";
+                button_recoveryLog.Enabled = true;
+            }
+            catch (Exception ex)
+            {
+                button_recoveryLog.Enabled = true;
+                log("日志还原循环错误：" + ex);
+            }
+            DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
+        }
         /// <summary>
         /// 日志还原
         /// </summary>
@@ -730,73 +802,24 @@ namespace 文件去重
         {
             try
             {
+                log("开始日志还原");
                 button_recoveryLog.Enabled = false;
                 OpenFileDialog openfile = new OpenFileDialog();
                 //初始显示文件目录
-                openfile.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                openfile.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory + "log";
                 //过滤文件类型
                 openfile.Filter = "文本文件|*.txt|可执行文件|*.exe|STOCK|STOCK.txt|所有文件类型|*.*";
                 if (DialogResult.OK == openfile.ShowDialog())
                 {
-                    button_recoveryLog.Text = "正在还原";
-                    int SuccessNum = 0;
-                    int NoFileExists = 0;
-                    int AllfileNum = 0;
-                    List<string> Allfile = new List<string>();
-                    StreamReader sr = new StreamReader(openfile.FileName, Encoding.Default);
-                    string[] Separator = { " 已移动到： " };
-                    string timestr = "21:03:53.683 ";
-                    Task.Factory.StartNew(() =>
+                    if (test)
+                        recoveryLog(openfile);
+                    else
                     {
-                        try
+                        Task.Factory.StartNew(() =>
                         {
-                            string content;
-                            while ((content = sr.ReadLine()) != null)
-                            {
-                                if (content.Contains(Separator[0]))
-                                {
-                                    Allfile.Add(content);
-                                    AllfileNum++;
-                                }
-                            }
-                            sr.Close();
-
-                            int index = 0;
-                            progressBar1.Value = 0;
-
-                            foreach (string str in Allfile)
-                            {
-                                progressBar1.Maximum = Allfile.Count;
-                                string[] MovePath = str.Substring(timestr.Length, str.Length - timestr.Length).Split(Separator, StringSplitOptions.RemoveEmptyEntries);
-
-                                if (MovePath.Length == 2)
-                                {
-                                    if (System.IO.File.Exists(MovePath[1]))
-                                    {
-                                        FileInfo file = new FileInfo(MovePath[1]);
-                                        file.MoveTo(MovePath[0]);
-                                        SuccessNum++;
-                                    }
-                                    else
-                                        NoFileExists++;
-                                    //log("新路径: " + MovePath[1]);
-                                    //log("旧路径: " + MovePath[0]);
-                                }
-                                progressBar1.Value = ++index;
-                                string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
-                                if (progressBar1.Value == progressBar1.Maximum)
-                                    percentage = "100";
-                                label1.Text = index + "/" + progressBar1.Maximum +" "+ percentage + "% 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists;
-                            }
-                            button_recoveryLog.Text = "日志还原";
-                            button_recoveryLog.Enabled = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            log("日志还原循环错误：" + ex);
-                        }
-                        DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
-                    });
+                            recoveryLog(openfile);
+                        });
+                    }
                 }
                 else
                 {
@@ -978,7 +1001,7 @@ namespace 文件去重
                 MessageBox.Show(ex.Message);
             }
         }
-        bool test = false;//测试用
+        bool test = true;//测试用
         private void button_SQLAuditFile_Click(object sender, EventArgs e)
         {
             DialogResult dialogResult = MessageBox.Show("是否去除无效文件？", "警告", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
@@ -1137,7 +1160,7 @@ namespace 文件去重
         Features sql_Dictionary_query(Features features, string time, bool md5Open, bool HashOpen, bool sha256Open, ref ArrayList SQLStringList)
         {
             //查找数据库数据
-            if (!keyValuePairs.ContainsKey(features.path))//数据库不存在数据
+            if (!sql_Dictionary.ContainsKey(features.path))//数据库不存在数据
             {
                 //log($"数据库无数据：{features.path}", time);
                 //当前文件的md5和hash
@@ -1153,13 +1176,13 @@ namespace 文件去重
             }
             else//数据库存在数据，从数据库中提取数据
             {
-                var keyValuePairs1 = keyValuePairs[features.path];//读取字典数据
-                if (keyValuePairs1.size == features.size.ToString() && keyValuePairs1.LastWriteTime == features.LastWriteTime.ToString())
+                var sql_Dictionary1 = sql_Dictionary[features.path];//读取字典数据
+                if (sql_Dictionary1.size == features.size && sql_Dictionary1.LastWriteTime == features.LastWriteTime.ToString())
                 {
                     //log($"数据库存在数据：{features.path}", time);
-                    features.md5 = keyValuePairs1.md5;
-                    features.Hash = keyValuePairs1.Hash;
-                    features.sha256 = keyValuePairs1.sha256;
+                    features.md5 = sql_Dictionary1.md5;
+                    features.Hash = sql_Dictionary1.Hash;
+                    features.sha256 = sql_Dictionary1.sha256;
                 }
                 else//数据过期
                 {
@@ -1174,7 +1197,6 @@ namespace 文件去重
                     //更新数据
                     SQLStringList.Add($"delete from file where path = '{features.path}'");//删除数据
                     SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{features.path}','{features.size}','{features.md5}','{features.Hash}','{features.sha256}','{features.LastWriteTime}')");//添加数据到数据库
-                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
                 }
             }
             return features;
