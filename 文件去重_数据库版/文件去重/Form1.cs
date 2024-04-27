@@ -1027,7 +1027,6 @@ namespace 文件去重
                     button_SQLempty.Enabled = false;
                     SQLiteHelper.ExecuteSql("delete from file");//清空数据库
                     SQLiteHelper.ExecuteSql("delete from HistoricalPath");//清空数据库
-                    SQLiteHelper.ExecuteSql("vacuum");//数据库收缩指令
                     button_SQLempty.Enabled = true;
                 }
             }
@@ -1055,7 +1054,6 @@ namespace 文件去重
                         int OK = 0;
 
                         ArrayList SQLStringList = new ArrayList();
-                        SQLiteHelper.ExecuteSqlTran(SQLStringList);
 
                         for (int i = 0; i < data.Tables[0].Rows.Count; i++)
                         {

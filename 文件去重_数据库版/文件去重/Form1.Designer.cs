@@ -203,11 +203,11 @@
             // button_SQLempty
             // 
             this.button_SQLempty.AutoSize = true;
-            this.button_SQLempty.Location = new System.Drawing.Point(120, 133);
+            this.button_SQLempty.Location = new System.Drawing.Point(201, 133);
             this.button_SQLempty.Name = "button_SQLempty";
-            this.button_SQLempty.Size = new System.Drawing.Size(39, 23);
+            this.button_SQLempty.Size = new System.Drawing.Size(75, 23);
             this.button_SQLempty.TabIndex = 15;
-            this.button_SQLempty.Text = "清空";
+            this.button_SQLempty.Text = "清空数据库";
             this.button_SQLempty.UseVisualStyleBackColor = true;
             this.button_SQLempty.Click += new System.EventHandler(this.button_SQLempty_Click);
             // 
@@ -218,15 +218,15 @@
             this.checkBox_sql.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_sql.Location = new System.Drawing.Point(12, 137);
             this.checkBox_sql.Name = "checkBox_sql";
-            this.checkBox_sql.Size = new System.Drawing.Size(42, 16);
+            this.checkBox_sql.Size = new System.Drawing.Size(120, 16);
             this.checkBox_sql.TabIndex = 16;
-            this.checkBox_sql.Text = "sql";
+            this.checkBox_sql.Text = "启用数据库内数据";
             this.checkBox_sql.UseVisualStyleBackColor = true;
             // 
             // button_SQLAuditFile
             // 
             this.button_SQLAuditFile.AutoSize = true;
-            this.button_SQLAuditFile.Location = new System.Drawing.Point(51, 133);
+            this.button_SQLAuditFile.Location = new System.Drawing.Point(132, 133);
             this.button_SQLAuditFile.Name = "button_SQLAuditFile";
             this.button_SQLAuditFile.Size = new System.Drawing.Size(63, 23);
             this.button_SQLAuditFile.TabIndex = 14;
@@ -237,7 +237,7 @@
             // button_recoverySQL
             // 
             this.button_recoverySQL.AutoSize = true;
-            this.button_recoverySQL.Location = new System.Drawing.Point(165, 133);
+            this.button_recoverySQL.Location = new System.Drawing.Point(282, 133);
             this.button_recoverySQL.Name = "button_recoverySQL";
             this.button_recoverySQL.Size = new System.Drawing.Size(87, 23);
             this.button_recoverySQL.TabIndex = 17;
