@@ -37,12 +37,11 @@ namespace 文件去重
         class Features
         {
             public string path { get; set; }
-            public long size { get; set; }
+            public string size { get; set; }
             public string md5 { get; set; }
             public string Hash { get; set; }//sha1
             public string sha256 { get; set; }
             public string LastWriteTime { get; set; }
-            //public FileInfo file { get; set; }
         }
         class HistoricalPath
         {
@@ -66,19 +65,20 @@ namespace 文件去重
         /// </summary>
         void FileDuplicateRemoval()
         {
-            string time = DateTime.Now.ToString("yyyyMMdd-HH-mm-ss");
+            DateTime start = DateTime.Now;
+            string time = start.ToString("yyyyMMdd-HH-mm-ss");
             try
             {
                 button1.Enabled = false;
-                ////加载数据库数据
+                //加载数据库数据
                 //ArrayList SQLStringList = new ArrayList();
-                //DataSet data_sql = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file"); 
+                //DataSet data_sql = SQLiteHelper.Query("select path,size,md5,Hash,SHA256,LastWriteTime from file");
                 //sql_Dictionary.Clear();//清空数据
                 //for (int i = 0; i < data_sql.Tables[0].Rows.Count; i++)
                 //{
                 //    Features features_sql = new Features();
                 //    features_sql.path = data_sql.Tables[0].Rows[i].Field<string>("path");
-                //    features_sql.size = data_sql.Tables[0].Rows[i].Field<long>("size");
+                //    features_sql.size = data_sql.Tables[0].Rows[i].Field<string>("size");
                 //    features_sql.md5 = data_sql.Tables[0].Rows[i].Field<string>("md5");
                 //    features_sql.Hash = data_sql.Tables[0].Rows[i].Field<string>("Hash");
                 //    features_sql.sha256 = data_sql.Tables[0].Rows[i].Field<string>("SHA256");
@@ -196,11 +196,11 @@ namespace 文件去重
                         progressBar1.Maximum = FileGet.lst.Count;
                         //当前文件的信息
                         Features features1 = new Features();
-                        features1.size = file.Length;
+                        features1.size = file.Length.ToString();
                         features1.path = file.FullName;
                         features1.LastWriteTime = file.LastWriteTime.ToString();
                         //总列表中和当前文件大小相同的新列表
-                        var index = features.FindAll(o => o.size == file.Length);
+                        var index = features.FindAll(o => o.size == file.Length.ToString());
 
                         if (index.Count == 0)//文件大小不同
                         {
@@ -212,6 +212,7 @@ namespace 文件去重
                             if (checkBox_sql.Checked)
                             {
                                 features1 = sqlquery(features1, time, md5Open, HashOpen, sha256Open);
+                                //features1 = sql_Dictionary_query(features1, time, md5Open, HashOpen, sha256Open, ref SQLStringList);
                             }
                             else//不使用数据库模式
                             {
@@ -226,8 +227,8 @@ namespace 文件去重
 
                             for (int i = 0;i< index.Count;i++)//所有文件大小相同的文件
                             {
-                                //index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
                                 index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
+                                //index[i] = sql_Dictionary_query(index[i], time, md5Open, HashOpen, sha256Open,SQLStringList);
                                 if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash)
                                 {
                                     //确定为同一文件
@@ -283,8 +284,6 @@ namespace 文件去重
                         log("错误：" + Environment.NewLine + "错误文件：" + file.FullName + Environment.NewLine + "目标路径：" + NewPath + Environment.NewLine + ex, time);
                     }
                 }
-                log("结束", time);
-                button1.Text = "开始";
                 DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory, time);
                 if (checkBox_DeleteNullFile.Checked)
                 {
@@ -293,12 +292,16 @@ namespace 文件去重
                         DeleteNullFileRecursion(str, time);
                     }
                 }
+                //if (SQLStringList.Count > 0)
                 //SQLiteHelper.ExecuteSqlTran(SQLStringList);//统一更新数据库
+                log("结束", time);
+                button1.Text = "开始";
+                log($"总用时：{(DateTime.Now - start).TotalSeconds}s", time);
                 button1.Enabled = true;
             }
             catch (Exception ex)
             {
-                log("button1错误：" + ex.Message, time);
+                log("button1错误：" + ex, time);
                 button1.Text = "开始";
                 MessageBox.Show(ex.Message, "button1错误");
                 button1.Enabled = true;
@@ -1001,7 +1004,7 @@ namespace 文件去重
                 MessageBox.Show(ex.Message);
             }
         }
-        bool test = true;//测试用
+        bool test = false;//测试用
         private void button_SQLAuditFile_Click(object sender, EventArgs e)
         {
             DialogResult dialogResult = MessageBox.Show("是否去除无效文件？", "警告", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
@@ -1097,7 +1100,7 @@ namespace 文件去重
                     log($"数据库有重复数据：{features.path}", time);
                     SQLiteHelper.ExecuteSql($"delete from file where path = '{features.path}'");//删除数据
                 }
-                log($"数据库无数据：{features.path}", time);
+                //log($"数据库无数据：{features.path}", time);
                 var start = DateTime.Now;
                 //当前文件的md5和hash
                 if (md5Open)
@@ -1121,7 +1124,7 @@ namespace 文件去重
                 if (data.Tables[0].Rows[0].Field<string>("size") == features.size.ToString() &&
                     (data.Tables[0].Rows[0].Field<string>("LastWriteTime")) == features.LastWriteTime.ToString())//判断更新时间和大小是否匹配
                 {
-                    log($"数据库存在数据：{features.path}", time);
+                    //log($"数据库存在数据：{features.path}", time);
                     features.md5 = data.Tables[0].Rows[0].Field<string>("md5");
                     features.Hash = data.Tables[0].Rows[0].Field<string>("Hash");
                     features.sha256 = data.Tables[0].Rows[0].Field<string>("SHA256");
@@ -1157,7 +1160,7 @@ namespace 文件去重
         /// <param name="sha256Open"></param>
         /// <param name="SQLStringList"></param>
         /// <returns></returns>
-        Features sql_Dictionary_query(Features features, string time, bool md5Open, bool HashOpen, bool sha256Open, ref ArrayList SQLStringList)
+        Features sql_Dictionary_query(Features features, string time, bool md5Open, bool HashOpen, bool sha256Open, ArrayList SQLStringList)
         {
             //查找数据库数据
             if (!sql_Dictionary.ContainsKey(features.path))//数据库不存在数据
