@@ -225,6 +225,7 @@ namespace 文件去重
                                     features1.sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
                             }
 
+                            bool BeRepeat = false;
                             for (int i = 0;i< index.Count;i++)//所有文件大小相同的文件
                             {
                                 index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
@@ -257,10 +258,7 @@ namespace 文件去重
                                     }
 
                                     RepeatNum++;
-
-                                    //把新的不同文件保存到总列表
-                                    NoRepeatNum++;
-                                    features.Add(features1);
+                                    BeRepeat = true;
 
                                     //更新数据到数据库
                                     ArrayList SQLStringList = new ArrayList();
@@ -268,6 +266,11 @@ namespace 文件去重
                                     SQLStringList.Add($"insert into HistoricalPath(oldpath,NewPath,repeatPath,time) values('{oldpath}','{NewPath}','{index[i].path}','{time}')");//添加数据到数据库
                                     SQLiteHelper.ExecuteSqlTran(SQLStringList);
                                     break;
+                                }
+                                if (!BeRepeat)//不同文件保存到列表
+                                {
+                                    NoRepeatNum++;
+                                    features.Add(features1);
                                 }
                             }
                         }
