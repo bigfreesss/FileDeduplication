@@ -1,8 +1,0 @@
-D:\tuyang\SDK\test\文件去重\文件去重\bin\Release\文件去重.exe.config
-D:\tuyang\SDK\test\文件去重\文件去重\bin\Release\文件去重.exe
-D:\tuyang\SDK\test\文件去重\文件去重\bin\Release\文件去重.pdb
-D:\tuyang\SDK\test\文件去重\文件去重\obj\Release\文件去重.Form1.resources
-D:\tuyang\SDK\test\文件去重\文件去重\obj\Release\文件去重.Properties.Resources.resources
-D:\tuyang\SDK\test\文件去重\文件去重\obj\Release\文件去重.csproj.GenerateResource.Cache
-D:\tuyang\SDK\test\文件去重\文件去重\obj\Release\文件去重.exe
-D:\tuyang\SDK\test\文件去重\文件去重\obj\Release\文件去重.pdb

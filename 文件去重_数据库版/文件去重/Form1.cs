@@ -57,10 +57,6 @@ namespace 文件去重
         /// </summary>
         Dictionary<string, Features> sql_Dictionary = new Dictionary<string, Features>();
         /// <summary>
-        /// //相同文件大小的文件列表
-        /// </summary>
-        Dictionary<long, List<Features>> EqualsizeFile = new Dictionary<long, List<Features>>();
-        /// <summary>
         /// 文件去重本体
         /// </summary>
         void FileDuplicateRemoval()
@@ -189,6 +185,7 @@ namespace 文件去重
                 string NewPath = "";
                 
                 List<Features> features = new List<Features>();
+                //Dictionary<long, List<Features>> EqualsizeFile = new Dictionary<long, List<Features>>();
                 foreach (FileInfo file in FileGet.lst)
                 {
                     try
@@ -203,8 +200,16 @@ namespace 文件去重
                         var index = features.FindAll(o => o.size == file.Length.ToString());
 
                         if (index.Count == 0)//文件大小不同
+                        //if(!EqualsizeFile.ContainsKey(file.Length))
                         {
                             features.Add(features1);
+
+                            //新建一个列表来装相同大小文件
+                            //List<Features> EqualsizeFile_list = new List<Features>();
+                            //EqualsizeFile_list.Add(features1);
+                            //把列表加入字典
+                            //EqualsizeFile.Add(file.Length, EqualsizeFile_list);
+
                             NoRepeatNum++;
                         }
                         else//如果文件大小相同，再计算哈希
@@ -226,11 +231,14 @@ namespace 文件去重
                             }
 
                             bool BeRepeat = false;
+
+                            //var index = EqualsizeFile[file.Length];//所有文件大小相同的文件
+
                             for (int i = 0;i< index.Count;i++)//所有文件大小相同的文件
                             {
                                 index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
                                 //index[i] = sql_Dictionary_query(index[i], time, md5Open, HashOpen, sha256Open,SQLStringList);
-                                if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash)
+                                if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash && features1.sha256 == index[i].sha256)
                                 {
                                     //确定为同一文件
                                     string oldpath = file.FullName;
@@ -271,6 +279,7 @@ namespace 文件去重
                                 {
                                     NoRepeatNum++;
                                     features.Add(features1);
+                                    //index.Add(features1);
                                 }
                             }
                         }

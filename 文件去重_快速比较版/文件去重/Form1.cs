@@ -171,7 +171,7 @@ namespace 文件去重
                                 {
                                     RepeatPossible.SHA256 = general_sha256_code(RepeatPossible.path, Sha26ParseType.StreamType);
                                 }
-                                if (md5 == RepeatPossible.md5 && Hash == RepeatPossible.Hash)
+                                if (md5 == RepeatPossible.md5 && Hash == RepeatPossible.Hash && sha256 == RepeatPossible.SHA256)
                                 {
                                     //确定为同一文件
                                     string oldpath = file.FullName;
