@@ -16,6 +16,7 @@ namespace 文件去重
 {
     public partial class Form1 : Form
     {
+        bool test = false;//测试用
         public Form1()
         {
             try
@@ -184,8 +185,8 @@ namespace 文件去重
                 int ErrorNum = 0;
                 string NewPath = "";
                 
-                List<Features> features = new List<Features>();
-                //Dictionary<long, List<Features>> EqualsizeFile = new Dictionary<long, List<Features>>();
+                //List<Features> features = new List<Features>();
+                Dictionary<long, List<Features>> EqualsizeFile = new Dictionary<long, List<Features>>();
                 foreach (FileInfo file in FileGet.lst)
                 {
                     try
@@ -196,19 +197,22 @@ namespace 文件去重
                         features1.size = file.Length.ToString();
                         features1.path = file.FullName;
                         features1.LastWriteTime = file.LastWriteTime.ToString();
-                        //总列表中和当前文件大小相同的新列表
-                        var index = features.FindAll(o => o.size == file.Length.ToString());
 
-                        if (index.Count == 0)//文件大小不同
-                        //if(!EqualsizeFile.ContainsKey(file.Length))
+                        //总列表中和当前文件大小相同的新列表
+                        //var index = features.FindAll(o => o.size == file.Length.ToString());
+                        List<Features> index = new List<Features>();
+                        bool isbe = EqualsizeFile.TryGetValue(file.Length, out index);//所有文件大小相同的文件
+
+                        //if (index.Count == 0)//文件大小不同
+                        if (!isbe)
                         {
-                            features.Add(features1);
+                            //features.Add(features1);
 
                             //新建一个列表来装相同大小文件
-                            //List<Features> EqualsizeFile_list = new List<Features>();
-                            //EqualsizeFile_list.Add(features1);
+                            List<Features> EqualsizeFile_list = new List<Features>();
+                            EqualsizeFile_list.Add(features1);
                             //把列表加入字典
-                            //EqualsizeFile.Add(file.Length, EqualsizeFile_list);
+                            EqualsizeFile.Add(file.Length, EqualsizeFile_list);
 
                             NoRepeatNum++;
                         }
@@ -222,22 +226,34 @@ namespace 文件去重
                             else//不使用数据库模式
                             {
                                 //当前文件的md5和hash
-                                if (md5Open)
+                                if (md5Open && features1.md5 == null)
                                     features1.md5 = GetMD5HashFromFile(file.Open(System.IO.FileMode.Open));
-                                if (HashOpen)
+                                if (HashOpen && features1.Hash == null)
                                     features1.Hash = GetHash(file.Open(System.IO.FileMode.Open));
-                                if (sha256Open)
+                                if (sha256Open && features1.sha256 == null)
                                     features1.sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
                             }
 
                             bool BeRepeat = false;
 
-                            //var index = EqualsizeFile[file.Length];//所有文件大小相同的文件
-
                             for (int i = 0;i< index.Count;i++)//所有文件大小相同的文件
                             {
-                                index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
-                                //index[i] = sql_Dictionary_query(index[i], time, md5Open, HashOpen, sha256Open,SQLStringList);
+                                if (checkBox_sql.Checked)
+                                {
+                                    index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
+                                    //index[i] = sql_Dictionary_query(index[i], time, md5Open, HashOpen, sha256Open,SQLStringList);
+                                }
+                                else//不使用数据库模式
+                                {
+                                    //当前文件的md5和hash
+                                    if (md5Open && index[i].md5 == null)
+                                        index[i].md5 = GetMD5HashFromFile(file.Open(System.IO.FileMode.Open));
+                                    if (HashOpen && index[i].Hash == null)
+                                        features1.Hash = GetHash(file.Open(System.IO.FileMode.Open));
+                                    if (sha256Open && index[i].sha256 == null)
+                                        features1.sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
+                                }
+
                                 if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash && features1.sha256 == index[i].sha256)
                                 {
                                     //确定为同一文件
@@ -278,8 +294,8 @@ namespace 文件去重
                                 if (!BeRepeat)//不同文件保存到列表
                                 {
                                     NoRepeatNum++;
-                                    features.Add(features1);
-                                    //index.Add(features1);
+                                    //features.Add(features1);
+                                    index.Add(features1);
                                 }
                             }
                         }
@@ -293,7 +309,7 @@ namespace 文件去重
                     {
                         progressBar1.Value = ++index_progressBar1_Value;
                         ErrorNum++;
-                        log("错误：" + Environment.NewLine + "错误文件：" + file.FullName + Environment.NewLine + "目标路径：" + NewPath + Environment.NewLine + ex, time);
+                        log("错误文件：" + file.FullName + Environment.NewLine + "目标路径：" + NewPath + Environment.NewLine + ex, time);
                     }
                 }
                 DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory, time);
@@ -708,7 +724,7 @@ namespace 文件去重
                 {
                     progressBar1.Value = ++index;
                     ErrorNum++;
-                    log("错误：" + ex);
+                    log("即时还原循环错误：" + ex);
                 }
                 string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
                 if (progressBar1.Value == progressBar1.Maximum)
@@ -743,38 +759,45 @@ namespace 文件去重
             catch (Exception ex)
             {
                 log("即时还原错误：" + ex.Message);
-                button_recovery.Text = "即时还原";
                 MessageBox.Show(ex.Message, "即时还原错误");
+            }
+            finally
+            {
                 button_recovery.Enabled = true;
+                button_recovery.Text = "即时还原";
             }
         }
+        /// <summary>
+        /// 日志还原
+        /// </summary>
+        /// <param name="openfile"></param>
         void recoveryLog(OpenFileDialog openfile)
         {
             button_recoveryLog.Text = "正在还原";
             int SuccessNum = 0;
             int NoFileExists = 0;
             int AllfileNum = 0;
+            int ErrorNum = 0;
             List<string> Allfile = new List<string>();
             StreamReader sr = new StreamReader(openfile.FileName, Encoding.Default);
             string[] Separator = { " 已移动到： " };
             string timestr = "21:03:53.683 ";
-            try
+            string content;
+            while ((content = sr.ReadLine()) != null)
             {
-                string content;
-                while ((content = sr.ReadLine()) != null)
+                if (content.Contains(Separator[0]))
                 {
-                    if (content.Contains(Separator[0]))
-                    {
-                        Allfile.Add(content);
-                        AllfileNum++;
-                    }
+                    Allfile.Add(content);
+                    AllfileNum++;
                 }
-                sr.Close();
+            }
+            sr.Close();
 
-                int index = 0;
-                progressBar1.Value = 0;
+            int index = 0;
 
-                foreach (string str in Allfile)
+            foreach (string str in Allfile)
+            {
+                try
                 {
                     progressBar1.Maximum = Allfile.Count;
                     string[] MovePath = str.Substring(timestr.Length, str.Length - timestr.Length).Split(Separator, StringSplitOptions.RemoveEmptyEntries);
@@ -796,16 +819,16 @@ namespace 文件去重
                     string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
                     if (progressBar1.Value == progressBar1.Maximum)
                         percentage = "100";
-                    label1.Text = index + "/" + progressBar1.Maximum + " " + percentage + "% 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists;
+                    label1.Text = index + "/" + progressBar1.Maximum + " " + percentage + "% 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists + " 错误文件：" + ErrorNum;
                 }
-                button_recoveryLog.Text = "日志还原";
-                button_recoveryLog.Enabled = true;
+                catch (Exception ex)
+                {
+                    ErrorNum++;
+                    log("日志还原循环错误：" + ex);
+                }
             }
-            catch (Exception ex)
-            {
-                button_recoveryLog.Enabled = true;
-                log("日志还原循环错误：" + ex);
-            }
+            button_recoveryLog.Text = "日志还原";
+            button_recoveryLog.Enabled = true;
             DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
         }
         /// <summary>
@@ -836,18 +859,16 @@ namespace 文件去重
                         });
                     }
                 }
-                else
-                {
-                    button_recoveryLog.Enabled = true;
-                    button_recoveryLog.Text = "日志还原";
-                }
             }
             catch (Exception ex)
             {
-                button_recoveryLog.Enabled = true;
-                button_recoveryLog.Text = "日志还原";
                 log("日志还原错误：" + ex.Message);
                 MessageBox.Show(ex.Message, "日志还原错误");
+            }
+            finally
+            {
+                button_recoveryLog.Enabled = true;
+                button_recoveryLog.Text = "日志还原";
             }
         }
 
@@ -1016,7 +1037,6 @@ namespace 文件去重
                 MessageBox.Show(ex.Message);
             }
         }
-        bool test = false;//测试用
         private void button_SQLAuditFile_Click(object sender, EventArgs e)
         {
             DialogResult dialogResult = MessageBox.Show("是否去除无效文件？", "警告", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
@@ -1113,16 +1133,15 @@ namespace 文件去重
                     SQLiteHelper.ExecuteSql($"delete from file where path = '{features.path}'");//删除数据
                 }
                 //log($"数据库无数据：{features.path}", time);
-                var start = DateTime.Now;
+                //var start = DateTime.Now;
                 //当前文件的md5和hash
-                if (md5Open)
+                if (md5Open && features.md5 == null)
                     features.md5 = GetMD5HashFromFile(features.path);
-                if (HashOpen)
+                if (HashOpen && features.Hash == null)
                     features.Hash = GetHash(features.path);
-                if (sha256Open)
-                {
+                if (sha256Open && features.sha256 == null)
                     features.sha256 = general_sha256_code(features.path, Sha26ParseType.StreamType);
-                }
+                
                 //log($"计算哈希值用时：{(DateTime.Now - start).TotalSeconds}s", time);
 
                 string sql = $"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{features.path}','{features.size}','{features.md5}','{features.Hash}','{features.sha256}','{features.LastWriteTime}')";
@@ -1145,18 +1164,20 @@ namespace 文件去重
                 {
                     log($"数据库更新数据：{features.path}", time);
                     //当前文件的md5和hash
-                    if (md5Open)
+
+                    if (md5Open && features.md5 == null)
                         features.md5 = GetMD5HashFromFile(features.path);
-                    if (HashOpen)
+                    if (HashOpen && features.Hash == null)
                         features.Hash = GetHash(features.path);
-                    if (sha256Open)
+                    if (sha256Open && features.sha256 == null)
                         features.sha256 = general_sha256_code(features.path, Sha26ParseType.StreamType);
+
                     //更新数据
-                    //SQLiteHelper.ExecuteSql($"update file SET size = '{file.Length}', md5 = '{md5}' , Hash = '{Hash}' , SHA256 = '{sha256}', LastWriteTime ='{file.LastWriteTime}' WHERE path = '{path}'");
-                    ArrayList SQLStringList = new ArrayList();
-                    SQLStringList.Add($"delete from file where path = '{features.path}'");//删除数据
-                    SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{features.path}','{features.size}','{features.md5}','{features.Hash}','{features.sha256}','{features.LastWriteTime}')");//添加数据到数据库
-                    SQLiteHelper.ExecuteSqlTran(SQLStringList);
+                    SQLiteHelper.ExecuteSql($"update file SET size = '{features.size}', md5 = '{features.md5}' , Hash = '{features.Hash}' , SHA256 = '{features.sha256}', LastWriteTime ='{features.LastWriteTime}' WHERE path = '{features.path}'");
+                    //ArrayList SQLStringList = new ArrayList();
+                    //SQLStringList.Add($"delete from file where path = '{features.path}'");//删除数据
+                    //SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{features.path}','{features.size}','{features.md5}','{features.Hash}','{features.sha256}','{features.LastWriteTime}')");//添加数据到数据库
+                    //SQLiteHelper.ExecuteSqlTran(SQLStringList);
                 }
                 //log($"从数据库读取用时：{(DateTime.Now - start).TotalSeconds}s", time);
             }
@@ -1179,12 +1200,14 @@ namespace 文件去重
             {
                 //log($"数据库无数据：{features.path}", time);
                 //当前文件的md5和hash
-                if (md5Open)
+
+                if (md5Open && features.md5 == null)
                     features.md5 = GetMD5HashFromFile(features.path);
-                if (HashOpen)
+                if (HashOpen && features.Hash == null)
                     features.Hash = GetHash(features.path);
-                if (sha256Open)
+                if (sha256Open && features.sha256 == null)
                     features.sha256 = general_sha256_code(features.path, Sha26ParseType.StreamType);
+
                 //更新数据
                 SQLStringList.Add($"delete from file where path = '{features.path}'");//删除数据
                 SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{features.path}','{features.size}','{features.md5}','{features.Hash}','{features.sha256}','{features.LastWriteTime}')");//添加数据到数据库
@@ -1203,12 +1226,13 @@ namespace 文件去重
                 {
                     log($"数据库更新数据：{features.path}", time);
                     //当前文件的md5和hash
-                    if (md5Open)
+                    if (md5Open && features.md5 == null)
                         features.md5 = GetMD5HashFromFile(features.path);
-                    if (HashOpen)
+                    if (HashOpen && features.Hash == null)
                         features.Hash = GetHash(features.path);
-                    if (sha256Open)
+                    if (sha256Open && features.sha256 == null)
                         features.sha256 = general_sha256_code(features.path, Sha26ParseType.StreamType);
+
                     //更新数据
                     SQLStringList.Add($"delete from file where path = '{features.path}'");//删除数据
                     SQLStringList.Add($"insert into file(path,size,md5,Hash,SHA256,LastWriteTime) values('{features.path}','{features.size}','{features.md5}','{features.Hash}','{features.sha256}','{features.LastWriteTime}')");//添加数据到数据库
