@@ -184,8 +184,8 @@ namespace 文件去重
                 int NoRepeatNum = 0;//不重复文件个数
                 int ErrorNum = 0;
                 string NewPath = "";
-                
-                //List<Features> features = new List<Features>();
+
+                List<Features> features = new List<Features>();//创建一个列表在遍历文件时保存不重复的文件
                 Dictionary<long, List<Features>> EqualsizeFile = new Dictionary<long, List<Features>>();
                 foreach (FileInfo file in FileGet.lst)
                 {
@@ -199,20 +199,21 @@ namespace 文件去重
                         features1.LastWriteTime = file.LastWriteTime.ToString();
 
                         //总列表中和当前文件大小相同的新列表
-                        //var index = features.FindAll(o => o.size == file.Length.ToString());
-                        List<Features> index = new List<Features>();
-                        bool isbe = EqualsizeFile.TryGetValue(file.Length, out index);//所有文件大小相同的文件
+                        var index = features.FindAll(o => o.size == file.Length.ToString());
 
-                        //if (index.Count == 0)//文件大小不同
-                        if (!isbe)
+                        //List<Features> EqualsizeFile_sizeIdentical_List = new List<Features>();
+                        //bool isbe = EqualsizeFile.TryGetValue(file.Length, out EqualsizeFile_sizeIdentical_List);//所有文件大小相同的文件
+
+                        if (index.Count == 0)//文件大小不同
+                            //if (!isbe)
                         {
-                            //features.Add(features1);
+                            features.Add(features1);
 
                             //新建一个列表来装相同大小文件
-                            List<Features> EqualsizeFile_list = new List<Features>();
-                            EqualsizeFile_list.Add(features1);
+                            //List<Features> EqualsizeFile_list = new List<Features>();
+                            //EqualsizeFile_list.Add(features1);
                             //把列表加入字典
-                            EqualsizeFile.Add(file.Length, EqualsizeFile_list);
+                            //EqualsizeFile.Add(file.Length, EqualsizeFile_list);
 
                             NoRepeatNum++;
                         }
@@ -236,12 +237,12 @@ namespace 文件去重
 
                             bool BeRepeat = false;
 
-                            for (int i = 0;i< index.Count;i++)//所有文件大小相同的文件
+                            for (int i = 0; i < index.Count; i++)//所有文件大小相同的文件
                             {
                                 if (checkBox_sql.Checked)
                                 {
                                     index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
-                                    //index[i] = sql_Dictionary_query(index[i], time, md5Open, HashOpen, sha256Open,SQLStringList);
+                                    //EqualsizeFile_sizeIdentical_List[i] = sql_Dictionary_query(EqualsizeFile_sizeIdentical_List[i], time, md5Open, HashOpen, sha256Open,SQLStringList);
                                 }
                                 else//不使用数据库模式
                                 {
@@ -291,12 +292,13 @@ namespace 文件去重
                                     SQLiteHelper.ExecuteSqlTran(SQLStringList);
                                     break;
                                 }
-                                if (!BeRepeat)//不同文件保存到列表
-                                {
-                                    NoRepeatNum++;
-                                    //features.Add(features1);
-                                    index.Add(features1);
-                                }
+                            }
+                            if (!BeRepeat)//不同文件保存到列表
+                            {
+                                NoRepeatNum++;
+                                features.Add(features1);
+
+                                //EqualsizeFile_sizeIdentical_List.Add(features1);
                             }
                         }
                         progressBar1.Value = ++index_progressBar1_Value;
