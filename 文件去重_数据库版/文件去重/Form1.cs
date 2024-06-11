@@ -285,7 +285,7 @@ namespace 文件去重
                                     RepeatNum++;
                                     BeRepeat = true;
 
-                                    //更新数据到数据库
+                                    //更新历史数据到数据库
                                     ArrayList SQLStringList = new ArrayList();
                                     SQLStringList.Add($"delete from HistoricalPath where oldpath = '{oldpath}'");//删除数据
                                     SQLStringList.Add($"insert into HistoricalPath(oldpath,NewPath,repeatPath,time) values('{oldpath}','{NewPath}','{index[i].path}','{time}')");//添加数据到数据库
@@ -1243,6 +1243,24 @@ namespace 文件去重
             return features;
         }
         private void button_recoverySQL_Click(object sender, EventArgs e)
+        {
+            if (test)
+            {
+                recoverySQL();
+            }
+            else
+            {
+                Task.Factory.StartNew(() =>
+                {
+                    recoverySQL();
+                }
+                );
+            }
+        }
+        /// <summary>
+        /// 按数据库还原
+        /// </summary>
+        void recoverySQL()
         {
             try
             {
