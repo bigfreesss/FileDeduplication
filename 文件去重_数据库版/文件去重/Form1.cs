@@ -250,9 +250,9 @@ namespace 文件去重
                                     if (md5Open && index[i].md5 == null)
                                         index[i].md5 = GetMD5HashFromFile(file.Open(System.IO.FileMode.Open));
                                     if (HashOpen && index[i].Hash == null)
-                                        features1.Hash = GetHash(file.Open(System.IO.FileMode.Open));
+                                        index[i].Hash = GetHash(file.Open(System.IO.FileMode.Open));
                                     if (sha256Open && index[i].sha256 == null)
-                                        features1.sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
+                                        index[i].sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
                                 }
 
                                 if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash && features1.sha256 == index[i].sha256)
