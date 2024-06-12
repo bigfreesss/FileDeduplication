@@ -1265,6 +1265,7 @@ namespace 文件去重
             try
             {
                 button_recoverySQL.Enabled = false;
+                label1.Text = "按数据库还原未找到数据";
                 var data = SQLiteHelper.Query("select oldpath,NewPath,repeatPath,time from HistoricalPath");
                 if (data != null)
                 {
@@ -1309,10 +1310,6 @@ namespace 文件去重
                     SQLiteHelper.ExecuteSqlTran(SQLStringList);
                     DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
                     button_recoverySQL.Enabled = true;
-                }
-                else
-                {
-                    label1.Text = "按数据库还原未找到数据";
                 }
             }
             catch (Exception ex)
