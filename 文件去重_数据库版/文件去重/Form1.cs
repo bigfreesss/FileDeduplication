@@ -1310,6 +1310,10 @@ namespace 文件去重
                     DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
                     button_recoverySQL.Enabled = true;
                 }
+                else
+                {
+                    label1.Text = "按数据库还原未找到数据";
+                }
             }
             catch (Exception ex)
             {
