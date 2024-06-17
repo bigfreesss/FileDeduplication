@@ -43,6 +43,7 @@
             this.checkBox_Delete = new System.Windows.Forms.CheckBox();
             this.button3 = new System.Windows.Forms.Button();
             this.checkBox_DeleteNullFile = new System.Windows.Forms.CheckBox();
+            this.checkBox_test = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // button1
@@ -100,7 +101,7 @@
             // 
             // button_recovery
             // 
-            this.button_recovery.Location = new System.Drawing.Point(384, 80);
+            this.button_recovery.Location = new System.Drawing.Point(387, 80);
             this.button_recovery.Name = "button_recovery";
             this.button_recovery.Size = new System.Drawing.Size(75, 23);
             this.button_recovery.TabIndex = 5;
@@ -110,7 +111,7 @@
             // 
             // button_recoveryLog
             // 
-            this.button_recoveryLog.Location = new System.Drawing.Point(465, 80);
+            this.button_recoveryLog.Location = new System.Drawing.Point(468, 80);
             this.button_recoveryLog.Name = "button_recoveryLog";
             this.button_recoveryLog.Size = new System.Drawing.Size(75, 23);
             this.button_recoveryLog.TabIndex = 6;
@@ -196,11 +197,22 @@
             this.checkBox_DeleteNullFile.Text = "删除空文件夹";
             this.checkBox_DeleteNullFile.UseVisualStyleBackColor = true;
             // 
+            // checkBox_test
+            // 
+            this.checkBox_test.AutoSize = true;
+            this.checkBox_test.Location = new System.Drawing.Point(471, 110);
+            this.checkBox_test.Name = "checkBox_test";
+            this.checkBox_test.Size = new System.Drawing.Size(72, 16);
+            this.checkBox_test.TabIndex = 19;
+            this.checkBox_test.Text = "测试模式";
+            this.checkBox_test.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(556, 133);
+            this.Controls.Add(this.checkBox_test);
             this.Controls.Add(this.checkBox_DeleteNullFile);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.checkBox_Delete);
@@ -241,6 +253,7 @@
         private System.Windows.Forms.CheckBox checkBox_Delete;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.CheckBox checkBox_DeleteNullFile;
+        private System.Windows.Forms.CheckBox checkBox_test;
     }
 }
 

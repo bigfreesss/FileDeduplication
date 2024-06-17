@@ -16,7 +16,7 @@ namespace 文件去重
 {
     public partial class Form1 : Form
     {
-        bool test = false;//测试用
+        //bool test = false;//测试用
         public Form1()
         {
             try
@@ -221,7 +221,7 @@ namespace 文件去重
                         {
                             if (checkBox_sql.Checked)
                             {
-                                features1 = sqlquery(features1, time, md5Open, HashOpen, sha256Open);
+                                sqlquery(features1, time, md5Open, HashOpen, sha256Open);
                                 //features1 = sql_Dictionary_query(features1, time, md5Open, HashOpen, sha256Open, ref SQLStringList);
                             }
                             else//不使用数据库模式
@@ -241,18 +241,18 @@ namespace 文件去重
                             {
                                 if (checkBox_sql.Checked)
                                 {
-                                    index[i] = sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
+                                    sqlquery(index[i], time, md5Open, HashOpen, sha256Open);
                                     //EqualsizeFile_sizeIdentical_List[i] = sql_Dictionary_query(EqualsizeFile_sizeIdentical_List[i], time, md5Open, HashOpen, sha256Open,SQLStringList);
                                 }
                                 else//不使用数据库模式
                                 {
                                     //当前文件的md5和hash
                                     if (md5Open && index[i].md5 == null)
-                                        index[i].md5 = GetMD5HashFromFile(file.Open(System.IO.FileMode.Open));
+                                        index[i].md5 = GetMD5HashFromFile(index[i].path);
                                     if (HashOpen && index[i].Hash == null)
-                                        index[i].Hash = GetHash(file.Open(System.IO.FileMode.Open));
+                                        index[i].Hash = GetHash(index[i].path);
                                     if (sha256Open && index[i].sha256 == null)
-                                        index[i].sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
+                                        index[i].sha256 = general_sha256_code(index[i].path, Sha26ParseType.StreamType);
                                 }
 
                                 if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash && features1.sha256 == index[i].sha256)
@@ -260,19 +260,36 @@ namespace 文件去重
                                     //确定为同一文件
                                     string oldpath = file.FullName;
                                     log(oldpath + " 与该文件相同： " + index[i].path, time);
-                                    if (checkBox_Delete.Checked)
+                                    if (checkBox_test.Checked)
+                                    {
+                                        //测试时不移动
+                                    }
+                                    else if (radioButton_Delete.Checked)
                                     {
                                         file.Delete();
                                         log(oldpath + " 已删除", time);
                                         NewPath = "";
                                     }
-                                    else
+                                    else 
                                     {
-                                        if (!Directory.Exists(RepeatFilePath))
+                                        if(radioButton_Move.Checked)
                                         {
-                                            Directory.CreateDirectory(RepeatFilePath);
+                                            if (!Directory.Exists(RepeatFilePath))
+                                            {
+                                                Directory.CreateDirectory(RepeatFilePath);
+                                            }
+                                            NewPath = RepeatRename(RepeatFilePath, file);
                                         }
-                                        NewPath = RepeatRename(RepeatFilePath, file);
+                                        else//移动到各个磁盘根目录RepeatFilePath文件夹
+                                        {
+                                            string rootPath = file.FullName.Split(':')[0];
+                                            NewPath = rootPath + @":\RepeatFilePath";
+                                            if (!Directory.Exists(NewPath))
+                                            {
+                                                Directory.CreateDirectory(NewPath);
+                                            }
+                                            NewPath = RepeatRename(NewPath, file);
+                                        }
                                         file.MoveTo(NewPath);
                                         log(oldpath + " 已移动到： " + file.FullName, time);
                                         //设置还原点
@@ -341,7 +358,7 @@ namespace 文件去重
         int RepeatNum = 0;//重复文件个数
         private void button1_Click(object sender, EventArgs e)
         {
-            if (test)
+            if (checkBox_test.Checked)
             {
                 FileDuplicateRemoval();
             }
@@ -697,6 +714,9 @@ namespace 文件去重
                 DeleteNullFile(FileGet.PathList[i], time);
             }
         }
+        /// <summary>
+        /// 还原文件
+        /// </summary>
         void recovery()
         {
             int index = 0;
@@ -738,7 +758,7 @@ namespace 文件去重
             DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
         }
         /// <summary>
-        /// 还原文件
+        /// 即时还原
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -748,7 +768,7 @@ namespace 文件去重
             {
                 button_recovery.Text = "正在还原";
                 button_recovery.Enabled = false;
-                if (test)
+                if (checkBox_test.Checked)
                     recovery();
                 else
                 {
@@ -851,7 +871,7 @@ namespace 文件去重
                 openfile.Filter = "文本文件|*.txt|可执行文件|*.exe|STOCK|STOCK.txt|所有文件类型|*.*";
                 if (DialogResult.OK == openfile.ShowDialog())
                 {
-                    if (test)
+                    if (checkBox_test.Checked)
                         recoveryLog(openfile);
                     else
                     {
@@ -1044,7 +1064,7 @@ namespace 文件去重
             DialogResult dialogResult = MessageBox.Show("是否去除无效文件？", "警告", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (dialogResult == DialogResult.Yes)
             {
-                if (test)
+                if (checkBox_test.Checked)
                 {
                     SQLAuditFile();
                 }
@@ -1122,7 +1142,7 @@ namespace 文件去重
         /// <param name="HashOpen"></param>
         /// <param name="sha256Open"></param>
         /// <returns></returns>
-        Features sqlquery(Features features,string time,bool md5Open, bool HashOpen, bool sha256Open)
+        void sqlquery(Features features,string time,bool md5Open, bool HashOpen, bool sha256Open)
         {
             //查找数据库数据
             var data = SQLiteHelper.Query(string.Format("select path,size,md5,Hash,SHA256,LastWriteTime from file where path = '{0}'", features.path));
@@ -1183,7 +1203,6 @@ namespace 文件去重
                 }
                 //log($"从数据库读取用时：{(DateTime.Now - start).TotalSeconds}s", time);
             }
-            return features;
         }
         /// <summary>
         /// 查询表格中是否已有对应路径数据
@@ -1244,7 +1263,7 @@ namespace 文件去重
         }
         private void button_recoverySQL_Click(object sender, EventArgs e)
         {
-            if (test)
+            if (checkBox_test.Checked)
             {
                 recoverySQL();
             }

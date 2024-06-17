@@ -40,13 +40,16 @@
             this.checkBox_md5 = new System.Windows.Forms.CheckBox();
             this.checkBox_Hash = new System.Windows.Forms.CheckBox();
             this.checkBox_sha256 = new System.Windows.Forms.CheckBox();
-            this.checkBox_Delete = new System.Windows.Forms.CheckBox();
             this.button3 = new System.Windows.Forms.Button();
             this.checkBox_DeleteNullFile = new System.Windows.Forms.CheckBox();
             this.button_SQLempty = new System.Windows.Forms.Button();
             this.checkBox_sql = new System.Windows.Forms.CheckBox();
             this.button_SQLAuditFile = new System.Windows.Forms.Button();
             this.button_recoverySQL = new System.Windows.Forms.Button();
+            this.checkBox_test = new System.Windows.Forms.CheckBox();
+            this.radioButton_MoveRoot = new System.Windows.Forms.RadioButton();
+            this.radioButton_Delete = new System.Windows.Forms.RadioButton();
+            this.radioButton_Move = new System.Windows.Forms.RadioButton();
             this.SuspendLayout();
             // 
             // button1
@@ -104,7 +107,7 @@
             // 
             // button_recovery
             // 
-            this.button_recovery.Location = new System.Drawing.Point(384, 80);
+            this.button_recovery.Location = new System.Drawing.Point(387, 80);
             this.button_recovery.Name = "button_recovery";
             this.button_recovery.Size = new System.Drawing.Size(75, 23);
             this.button_recovery.TabIndex = 5;
@@ -114,7 +117,7 @@
             // 
             // button_recoveryLog
             // 
-            this.button_recoveryLog.Location = new System.Drawing.Point(465, 80);
+            this.button_recoveryLog.Location = new System.Drawing.Point(468, 80);
             this.button_recoveryLog.Name = "button_recoveryLog";
             this.button_recoveryLog.Size = new System.Drawing.Size(75, 23);
             this.button_recoveryLog.TabIndex = 6;
@@ -169,16 +172,6 @@
             this.checkBox_sha256.Text = "sha256";
             this.checkBox_sha256.UseVisualStyleBackColor = true;
             // 
-            // checkBox_Delete
-            // 
-            this.checkBox_Delete.AutoSize = true;
-            this.checkBox_Delete.Location = new System.Drawing.Point(366, 110);
-            this.checkBox_Delete.Name = "checkBox_Delete";
-            this.checkBox_Delete.Size = new System.Drawing.Size(72, 16);
-            this.checkBox_Delete.TabIndex = 11;
-            this.checkBox_Delete.Text = "直接删除";
-            this.checkBox_Delete.UseVisualStyleBackColor = true;
-            // 
             // button3
             // 
             this.button3.AutoSize = true;
@@ -193,7 +186,7 @@
             // checkBox_DeleteNullFile
             // 
             this.checkBox_DeleteNullFile.AutoSize = true;
-            this.checkBox_DeleteNullFile.Location = new System.Drawing.Point(444, 110);
+            this.checkBox_DeleteNullFile.Location = new System.Drawing.Point(375, 137);
             this.checkBox_DeleteNullFile.Name = "checkBox_DeleteNullFile";
             this.checkBox_DeleteNullFile.Size = new System.Drawing.Size(96, 16);
             this.checkBox_DeleteNullFile.TabIndex = 13;
@@ -245,18 +238,63 @@
             this.button_recoverySQL.UseVisualStyleBackColor = true;
             this.button_recoverySQL.Click += new System.EventHandler(this.button_recoverySQL_Click);
             // 
+            // checkBox_test
+            // 
+            this.checkBox_test.AutoSize = true;
+            this.checkBox_test.Location = new System.Drawing.Point(471, 137);
+            this.checkBox_test.Name = "checkBox_test";
+            this.checkBox_test.Size = new System.Drawing.Size(72, 16);
+            this.checkBox_test.TabIndex = 18;
+            this.checkBox_test.Text = "测试模式";
+            this.checkBox_test.UseVisualStyleBackColor = true;
+            // 
+            // radioButton_MoveRoot
+            // 
+            this.radioButton_MoveRoot.AutoSize = true;
+            this.radioButton_MoveRoot.Checked = true;
+            this.radioButton_MoveRoot.Location = new System.Drawing.Point(222, 109);
+            this.radioButton_MoveRoot.Name = "radioButton_MoveRoot";
+            this.radioButton_MoveRoot.Size = new System.Drawing.Size(131, 16);
+            this.radioButton_MoveRoot.TabIndex = 19;
+            this.radioButton_MoveRoot.TabStop = true;
+            this.radioButton_MoveRoot.Text = "移动到根目录文件夹";
+            this.radioButton_MoveRoot.UseVisualStyleBackColor = true;
+            // 
+            // radioButton_Delete
+            // 
+            this.radioButton_Delete.AutoSize = true;
+            this.radioButton_Delete.Location = new System.Drawing.Point(359, 109);
+            this.radioButton_Delete.Name = "radioButton_Delete";
+            this.radioButton_Delete.Size = new System.Drawing.Size(71, 16);
+            this.radioButton_Delete.TabIndex = 20;
+            this.radioButton_Delete.Text = "直接删除";
+            this.radioButton_Delete.UseVisualStyleBackColor = true;
+            // 
+            // radioButton_Move
+            // 
+            this.radioButton_Move.AutoSize = true;
+            this.radioButton_Move.Location = new System.Drawing.Point(436, 109);
+            this.radioButton_Move.Name = "radioButton_Move";
+            this.radioButton_Move.Size = new System.Drawing.Size(107, 16);
+            this.radioButton_Move.TabIndex = 21;
+            this.radioButton_Move.Text = "移动到相对目录";
+            this.radioButton_Move.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(556, 165);
+            this.Controls.Add(this.radioButton_Move);
+            this.Controls.Add(this.radioButton_Delete);
+            this.Controls.Add(this.radioButton_MoveRoot);
+            this.Controls.Add(this.checkBox_test);
             this.Controls.Add(this.button_recoverySQL);
             this.Controls.Add(this.button_SQLAuditFile);
             this.Controls.Add(this.checkBox_sql);
             this.Controls.Add(this.button_SQLempty);
             this.Controls.Add(this.checkBox_DeleteNullFile);
             this.Controls.Add(this.button3);
-            this.Controls.Add(this.checkBox_Delete);
             this.Controls.Add(this.checkBox_sha256);
             this.Controls.Add(this.checkBox_Hash);
             this.Controls.Add(this.checkBox_md5);
@@ -291,13 +329,16 @@
         private System.Windows.Forms.CheckBox checkBox_md5;
         private System.Windows.Forms.CheckBox checkBox_Hash;
         private System.Windows.Forms.CheckBox checkBox_sha256;
-        private System.Windows.Forms.CheckBox checkBox_Delete;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.CheckBox checkBox_DeleteNullFile;
         private System.Windows.Forms.Button button_SQLempty;
         private System.Windows.Forms.CheckBox checkBox_sql;
         private System.Windows.Forms.Button button_SQLAuditFile;
         private System.Windows.Forms.Button button_recoverySQL;
+        private System.Windows.Forms.CheckBox checkBox_test;
+        private System.Windows.Forms.RadioButton radioButton_MoveRoot;
+        private System.Windows.Forms.RadioButton radioButton_Delete;
+        private System.Windows.Forms.RadioButton radioButton_Move;
     }
 }
 

@@ -176,7 +176,11 @@ namespace 文件去重
                                     //确定为同一文件
                                     string oldpath = file.FullName;
                                     log(oldpath + " 与该文件相同： " + RepeatPossible.path, time);
-                                    if (checkBox_Delete.Checked)
+                                    if(checkBox_test.Checked)
+                                    {
+                                        //测试模式下不移动
+                                    }
+                                    else if (checkBox_Delete.Checked)
                                     {
                                         file.Delete();
                                         log(oldpath + " 已删除", time);
@@ -247,10 +251,9 @@ namespace 文件去重
         }
 
         int RepeatNum = 0;//重复文件个数
-        bool test = false;
         private void button1_Click(object sender, EventArgs e)
         {
-            if (test)
+            if (checkBox_test.Checked)
             {
                 FileDuplicateRemoval();
             }
@@ -606,6 +609,49 @@ namespace 文件去重
         /// <summary>
         /// 还原文件
         /// </summary>
+        void recovery()
+        {
+            int index = 0;
+            int NoFileExists = 0;
+            int ErrorNum = 0;
+            int SuccessNum = 0;
+            for (int i = 0; i < historicalPaths.Count; i++)
+            {
+                try
+                {
+                    progressBar1.Maximum = historicalPaths.Count;
+                    if (System.IO.File.Exists(historicalPaths[i].newPath))
+                    {
+                        FileInfo file = new FileInfo(historicalPaths[i].newPath);
+                        file.MoveTo(historicalPaths[i].oldPath);
+                        log(historicalPaths[i].newPath + " 已还原到：" + historicalPaths[i].oldPath);
+                        SuccessNum++;
+                    }
+                    else
+                    {
+                        log(historicalPaths[i].newPath + " 文件不存在！");
+                        NoFileExists++;
+                    }
+                    progressBar1.Value = ++index;
+                }
+                catch (Exception ex)
+                {
+                    progressBar1.Value = ++index;
+                    ErrorNum++;
+                    log("即时还原循环错误：" + ex);
+                }
+                string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
+                if (progressBar1.Value == progressBar1.Maximum)
+                    percentage = "100";
+                label1.Text = progressBar1.Value + "/" + progressBar1.Maximum + " " + percentage + "% 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists + " 错误文件：" + ErrorNum;
+            }
+            button_recovery.Enabled = true;
+            button_recovery.Text = "即时还原";
+            DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
+        }
+        /// <summary>
+        /// 即时还原
+        /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void button_recovery_Click(object sender, EventArgs e)
@@ -614,53 +660,91 @@ namespace 文件去重
             {
                 button_recovery.Text = "正在还原";
                 button_recovery.Enabled = false;
-                progressBar1.Value = 0;
-                progressBar1.Maximum = historicalPaths.Count;
-                int NoFileExists = 0;
-                int ErrorNum = 0;
-                int SuccessNum = 0;
-                Task.Factory.StartNew(() =>
+                if (checkBox_test.Checked)
+                    recovery();
+                else
                 {
-                    for (int i = 0; i < historicalPaths.Count; i++)
+                    Task.Factory.StartNew(() =>
                     {
-                        try
-                        {
-                            if (File.Exists(historicalPaths[i].newPath))
-                            {
-                                FileInfo file = new FileInfo(historicalPaths[i].newPath);
-                                file.MoveTo(historicalPaths[i].oldPath);
-                                log(historicalPaths[i].newPath + " 已还原到：" + historicalPaths[i].oldPath);
-                                SuccessNum++;
-                            }
-                            else
-                            {
-                                log(historicalPaths[i].newPath + " 文件不存在！");
-                                NoFileExists++;
-                            }
-                            progressBar1.Value++;
-                        }
-                        catch (Exception ex)
-                        {
-                            progressBar1.Value++;
-                            ErrorNum++;
-                            log("错误：" + ex);
-                        }
-                        label1.Text = progressBar1.Value + "/" + historicalPaths.Count + " 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists + " 错误文件：" + ErrorNum;
-                    }
-                    button_recovery.Enabled = true;
-                    button_recovery.Text = "即时还原";
-                    DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
-                });
+                        recovery();
+                    });
+                }
             }
             catch (Exception ex)
             {
                 log("即时还原错误：" + ex.Message);
-                button_recovery.Text = "即时还原";
                 MessageBox.Show(ex.Message, "即时还原错误");
+            }
+            finally
+            {
                 button_recovery.Enabled = true;
+                button_recovery.Text = "即时还原";
             }
         }
+        /// <summary>
+        /// 日志还原
+        /// </summary>
+        /// <param name="openfile"></param>
+        void recoveryLog(OpenFileDialog openfile)
+        {
+            button_recoveryLog.Text = "正在还原";
+            int SuccessNum = 0;
+            int NoFileExists = 0;
+            int AllfileNum = 0;
+            int ErrorNum = 0;
+            List<string> Allfile = new List<string>();
+            StreamReader sr = new StreamReader(openfile.FileName, Encoding.Default);
+            string[] Separator = { " 已移动到： " };
+            string timestr = "21:03:53.683 ";
+            string content;
+            while ((content = sr.ReadLine()) != null)
+            {
+                if (content.Contains(Separator[0]))
+                {
+                    Allfile.Add(content);
+                    AllfileNum++;
+                }
+            }
+            sr.Close();
 
+            int index = 0;
+
+            foreach (string str in Allfile)
+            {
+                try
+                {
+                    progressBar1.Maximum = Allfile.Count;
+                    string[] MovePath = str.Substring(timestr.Length, str.Length - timestr.Length).Split(Separator, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (MovePath.Length == 2)
+                    {
+                        if (System.IO.File.Exists(MovePath[1]))
+                        {
+                            FileInfo file = new FileInfo(MovePath[1]);
+                            file.MoveTo(MovePath[0]);
+                            SuccessNum++;
+                        }
+                        else
+                            NoFileExists++;
+                        //log("新路径: " + MovePath[1]);
+                        //log("旧路径: " + MovePath[0]);
+                    }
+                    progressBar1.Value = ++index;
+                    string percentage = string.Format("{0:F2}", (((double)progressBar1.Value / progressBar1.Maximum) * 100));
+                    if (progressBar1.Value == progressBar1.Maximum)
+                        percentage = "100";
+                    label1.Text = index + "/" + progressBar1.Maximum + " " + percentage + "% 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists + " 错误文件：" + ErrorNum;
+                }
+                catch (Exception ex)
+                {
+                    ErrorNum++;
+                    log("日志还原循环错误：" + ex);
+                }
+            }
+            button_recoveryLog.Text = "日志还原";
+            button_recoveryLog.Enabled = true;
+            DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
+        }
         /// <summary>
         /// 日志还原
         /// </summary>
@@ -670,82 +754,35 @@ namespace 文件去重
         {
             try
             {
+                log("开始日志还原");
                 button_recoveryLog.Enabled = false;
                 OpenFileDialog openfile = new OpenFileDialog();
                 //初始显示文件目录
-                openfile.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                openfile.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory + "log";
                 //过滤文件类型
                 openfile.Filter = "文本文件|*.txt|可执行文件|*.exe|STOCK|STOCK.txt|所有文件类型|*.*";
                 if (DialogResult.OK == openfile.ShowDialog())
                 {
-                    button_recoveryLog.Text = "正在还原";
-                    int SuccessNum = 0;
-                    int NoFileExists = 0;
-                    int AllfileNum = 0;
-                    List<string> Allfile = new List<string>();
-                    StreamReader sr = new StreamReader(openfile.FileName, Encoding.Default);
-                    string[] Separator = { " 已移动到： " };
-                    string timestr = "21:03:53.683 ";
-                    Task.Factory.StartNew(() =>
+                    if (checkBox_test.Checked)
+                        recoveryLog(openfile);
+                    else
                     {
-                        try
+                        Task.Factory.StartNew(() =>
                         {
-                            string content;
-                            while ((content = sr.ReadLine()) != null)
-                            {
-                                if (content.Contains(Separator[0]))
-                                {
-                                    Allfile.Add(content);
-                                    AllfileNum++;
-                                }
-                            }
-                            sr.Close();
-
-                            progressBar1.Maximum = Allfile.Count;
-                            progressBar1.Value = 0;
-
-                            foreach (string str in Allfile)
-                            {
-                                string[] MovePath = str.Substring(timestr.Length, str.Length - timestr.Length).Split(Separator, StringSplitOptions.RemoveEmptyEntries);
-
-                                if (MovePath.Length == 2)
-                                {
-                                    if (File.Exists(MovePath[1]))
-                                    {
-                                        FileInfo file = new FileInfo(MovePath[1]);
-                                        file.MoveTo(MovePath[0]);
-                                        SuccessNum++;
-                                    }
-                                    else
-                                        NoFileExists++;
-                                    //log("新路径: " + MovePath[1]);
-                                    //log("旧路径: " + MovePath[0]);
-                                }
-                                progressBar1.Value++;
-                                label1.Text = progressBar1.Value + "/" + Allfile.Count + " 成功还原：" + SuccessNum + " 不存在文件：" + NoFileExists;
-                            }
-                            button_recoveryLog.Text = "日志还原";
-                            button_recoveryLog.Enabled = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            log("日志还原循环错误：" + ex);
-                        }
-                        DeleteNullFileRecursion(AppDomain.CurrentDomain.BaseDirectory);
-                    });
-                }
-                else
-                {
-                    button_recoveryLog.Enabled = true;
-                    button_recoveryLog.Text = "日志还原";
+                            recoveryLog(openfile);
+                        });
+                    }
                 }
             }
             catch (Exception ex)
             {
-                button_recoveryLog.Enabled = true;
-                button_recoveryLog.Text = "日志还原";
                 log("日志还原错误：" + ex.Message);
                 MessageBox.Show(ex.Message, "日志还原错误");
+            }
+            finally
+            {
+                button_recoveryLog.Enabled = true;
+                button_recoveryLog.Text = "日志还原";
             }
         }
 
