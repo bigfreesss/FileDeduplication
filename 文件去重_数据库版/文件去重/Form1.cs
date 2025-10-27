@@ -227,13 +227,14 @@ namespace 文件去重
                             }
                             else//不使用数据库模式
                             {
+                                FileStream fileStream = file.Open(System.IO.FileMode.Open);
                                 //当前文件的md5和hash
                                 if (md5Open && features1.md5 == null)
-                                    features1.md5 = GetMD5HashFromFile(file.Open(System.IO.FileMode.Open));
+                                    features1.md5 = GetMD5HashFromFile(fileStream);
                                 if (HashOpen && features1.Hash == null)
-                                    features1.Hash = GetHash(file.Open(System.IO.FileMode.Open));
+                                    features1.Hash = GetHash(fileStream);
                                 if (sha256Open && features1.sha256 == null)
-                                    features1.sha256 = general_sha256_code(file.Open(System.IO.FileMode.Open, System.IO.FileAccess.Read));
+                                    features1.sha256 = general_sha256_code(fileStream);
                             }
 
                             bool BeRepeat = false;
@@ -247,13 +248,14 @@ namespace 文件去重
                                 }
                                 else//不使用数据库模式
                                 {
+                                    FileStream fileStream = new FileStream(index[i].path, System.IO.FileMode.Open);
                                     //当前文件的md5和hash
                                     if (md5Open && index[i].md5 == null)
-                                        index[i].md5 = GetMD5HashFromFile(index[i].path);
+                                        index[i].md5 = GetMD5HashFromFile(fileStream);
                                     if (HashOpen && index[i].Hash == null)
-                                        index[i].Hash = GetHash(index[i].path);
+                                        index[i].Hash = GetHash(fileStream);
                                     if (sha256Open && index[i].sha256 == null)
-                                        index[i].sha256 = general_sha256_code(index[i].path, Sha26ParseType.StreamType);
+                                        index[i].sha256 = general_sha256_code(fileStream);//index[i].path, Sha26ParseType.StreamType
                                 }
 
                                 if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash && features1.sha256 == index[i].sha256)
@@ -1074,8 +1076,7 @@ namespace 文件去重
                     Task.Factory.StartNew(() =>
                     {
                         SQLAuditFile();
-                    }
-                    );
+                    });
                 }
             }
         }
@@ -1147,6 +1148,7 @@ namespace 文件去重
         {
             //查找数据库数据
             var data = SQLiteHelper.Query(string.Format("select path,size,md5,Hash,SHA256,LastWriteTime from file where path = '{0}'", features.path));
+            FileStream fileStream = new FileStream(features.path, System.IO.FileMode.Open);
             //log($"查找数据库用时：{(DateTime.Now - start).TotalSeconds}s", time);
             if (data.Tables[0].Rows.Count != 1)//数据库不存在数据或有重复数据
             {
@@ -1157,13 +1159,14 @@ namespace 文件去重
                 }
                 //log($"数据库无数据：{features.path}", time);
                 //var start = DateTime.Now;
+
                 //当前文件的md5和hash
                 if (md5Open && features.md5 == null)
-                    features.md5 = GetMD5HashFromFile(features.path);
+                    features.md5 = GetMD5HashFromFile(fileStream);
                 if (HashOpen && features.Hash == null)
-                    features.Hash = GetHash(features.path);
+                    features.Hash = GetHash(fileStream);
                 if (sha256Open && features.sha256 == null)
-                    features.sha256 = general_sha256_code(features.path, Sha26ParseType.StreamType);
+                    features.sha256 = general_sha256_code(fileStream);
                 
                 //log($"计算哈希值用时：{(DateTime.Now - start).TotalSeconds}s", time);
 
@@ -1189,11 +1192,11 @@ namespace 文件去重
                     //当前文件的md5和hash
 
                     if (md5Open && features.md5 == null)
-                        features.md5 = GetMD5HashFromFile(features.path);
+                        features.md5 = GetMD5HashFromFile(fileStream);
                     if (HashOpen && features.Hash == null)
-                        features.Hash = GetHash(features.path);
+                        features.Hash = GetHash(fileStream);
                     if (sha256Open && features.sha256 == null)
-                        features.sha256 = general_sha256_code(features.path, Sha26ParseType.StreamType);
+                        features.sha256 = general_sha256_code(fileStream);
 
                     //更新数据
                     SQLiteHelper.ExecuteSql($"update file SET size = '{features.size}', md5 = '{features.md5}' , Hash = '{features.Hash}' , SHA256 = '{features.sha256}', LastWriteTime ='{features.LastWriteTime}' WHERE path = '{features.path}'");
@@ -1273,8 +1276,7 @@ namespace 文件去重
                 Task.Factory.StartNew(() =>
                 {
                     recoverySQL();
-                }
-                );
+                });
             }
         }
         /// <summary>
