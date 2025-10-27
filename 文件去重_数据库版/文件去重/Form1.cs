@@ -235,6 +235,7 @@ namespace 文件去重
                                     features1.Hash = GetHash(fileStream);
                                 if (sha256Open && features1.sha256 == null)
                                     features1.sha256 = general_sha256_code(fileStream);
+                                fileStream.Close();
                             }
 
                             bool BeRepeat = false;
@@ -256,6 +257,7 @@ namespace 文件去重
                                         index[i].Hash = GetHash(fileStream);
                                     if (sha256Open && index[i].sha256 == null)
                                         index[i].sha256 = general_sha256_code(fileStream);//index[i].path, Sha26ParseType.StreamType
+                                    fileStream.Close();
                                 }
 
                                 if (features1.md5 == index[i].md5 && features1.Hash == index[i].Hash && features1.sha256 == index[i].sha256)
@@ -509,7 +511,7 @@ namespace 文件去重
             {
                 MD5 md5 = new MD5CryptoServiceProvider();
                 byte[] retVal = md5.ComputeHash(file);
-                file.Close();
+                //file.Close();
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < retVal.Length; i++)
                 {
@@ -1002,7 +1004,7 @@ namespace 文件去重
             byte[] by = null;
             System.Security.Cryptography.SHA256Managed Sha256 = new System.Security.Cryptography.SHA256Managed();
             by = Sha256.ComputeHash(stream);
-            stream.Close();
+            //stream.Close();
             return BitConverter.ToString(by).Replace("-", "").ToLower();
         }
         #endregion
@@ -1207,6 +1209,7 @@ namespace 文件去重
                 }
                 //log($"从数据库读取用时：{(DateTime.Now - start).TotalSeconds}s", time);
             }
+            fileStream.Close();
         }
         /// <summary>
         /// 查询表格中是否已有对应路径数据
